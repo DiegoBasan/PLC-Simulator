@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLC Simulator — TIA Portal Style</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #1a1d21;
+    --bg2: #22262d;
+    --bg3: #2a2f38;
+    --bg4: #333a45;
+    --panel: #1e2229;
+    --border: #3a4150;
+    --border2: #4a5568;
+    --accent: #0097e6;
+    --accent2: #00d2ff;
+    --green: #00c853;
+    --red: #ff3d00;
+    --yellow: #ffc107;
+    --orange: #ff6d00;
+    --purple: #7c4dff;
+    --text: #e8ecf0;
+    --text2: #9aacbe;
+    --text3: #6b7c93;
+    --siemens: #009999;
+    --header-h: 48px;
+    --sidebar-w: 260px;
+    --toolbar-h: 40px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+
+  /* ===== HEADER ===== */
+  .header {
+    height: var(--header-h);
+    background: linear-gradient(90deg, #0d1117 0%, #161b22 100%);
+    border-bottom: 2px solid var(--siemens);
+    display: flex; align-items: center; gap: 0;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 100;
+  }
+  .logo {
+    width: var(--sidebar-w);
+    display: flex; align-items: center; gap: 10px;
+    padding: 0 16px;
+    border-right: 1px solid var(--border);
+    height: 100%;
+    flex-shrink: 0;
+  }
+  .logo-icon { width: 28px; height: 28px; background: var(--siemens); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; color: #fff; letter-spacing: -1px; }
+  .logo-text { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
+  .logo-text span { display: block; font-size: 10px; color: var(--siemens); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; }
+  .header-nav { display: flex; align-items: center; height: 100%; flex: 1; }
+  .header-nav button {
+    height: 100%; padding: 0 14px; font-size: 12px; font-family: 'Barlow', sans-serif;
+    background: none; border: none; color: var(--text2); cursor: pointer;
+    border-right: 1px solid var(--border);
+    transition: all 0.15s;
+  }
+  .header-nav button:hover { background: var(--bg3); color: var(--text); }
+  .header-status { display: flex; align-items: center; gap: 12px; padding: 0 16px; margin-left: auto; }
+  .status-badge {
+    display: flex; align-items: center; gap: 5px; padding: 3px 10px;
+    border-radius: 3px; font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .status-badge.stop { background: rgba(255,61,0,0.15); color: var(--red); border: 1px solid rgba(255,61,0,0.3); }
+  .status-badge.run { background: rgba(0,200,83,0.15); color: var(--green); border: 1px solid rgba(0,200,83,0.3); }
+  .status-badge.sim { background: rgba(0,151,230,0.15); color: var(--accent2); border: 1px solid rgba(0,151,230,0.3); }
+  .status-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .status-badge.stop .status-dot { background: var(--red); }
+  .status-badge.run .status-dot { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 1s infinite; }
+  .status-badge.sim .status-dot { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); animation: pulse 0.5s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ===== TOOLBAR ===== */
+  .toolbar {
+    height: var(--toolbar-h); background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 2px; padding: 0 8px;
+    flex-shrink: 0;
+  }
+  .tb-sep { width: 1px; height: 24px; background: var(--border); margin: 0 4px; }
+  .tb-btn {
+    height: 28px; min-width: 28px; padding: 0 8px;
+    background: none; border: 1px solid transparent;
+    border-radius: 3px; color: var(--text2); cursor: pointer;
+    font-size: 11px; font-family: 'Barlow', sans-serif;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.12s;
+  }
+  .tb-btn:hover { background: var(--bg4); border-color: var(--border); color: var(--text); }
+  .tb-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .tb-btn.run-btn { background: rgba(0,200,83,0.12); border-color: rgba(0,200,83,0.4); color: var(--green); }
+  .tb-btn.run-btn:hover { background: var(--green); color: #000; }
+  .tb-btn.stop-btn { background: rgba(255,61,0,0.12); border-color: rgba(255,61,0,0.4); color: var(--red); }
+  .tb-btn.stop-btn:hover { background: var(--red); color: #fff; }
+  .tb-btn.sim-btn { background: rgba(0,151,230,0.12); border-color: rgba(0,151,230,0.4); color: var(--accent); }
+  .tb-btn.sim-btn:hover { background: var(--accent); color: #fff; }
+  .tb-btn.force-btn { background: rgba(255,193,7,0.12); border-color: rgba(255,193,7,0.4); color: var(--yellow); }
+  .tb-btn.force-btn:hover { background: var(--yellow); color: #000; }
+
+  /* ===== MAIN LAYOUT ===== */
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    width: var(--sidebar-w); background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex-shrink: 0; overflow: hidden;
+  }
+  .sidebar-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .sidebar-tab {
+    flex: 1; height: 32px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .sidebar-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(0,151,230,0.05); }
+  .sidebar-content { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .sidebar-content::-webkit-scrollbar { width: 4px; }
+  .sidebar-content::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .tree-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 12px 5px 8px; cursor: pointer;
+    font-size: 12px; color: var(--text2); user-select: none;
+    transition: all 0.1s;
+  }
+  .tree-item:hover { background: var(--bg3); color: var(--text); }
+  .tree-item.active { background: rgba(0,151,230,0.12); color: var(--accent); }
+  .tree-item .icon { width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+  .tree-label { font-size: 11px; }
+  .tree-group { padding: 6px 8px 2px; font-size: 9px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text3); }
+  .tree-indent { padding-left: 24px; }
+
+  /* blocks palette */
+  .block-palette { padding: 8px; display: flex; flex-direction: column; gap: 4px; }
+  .palette-item {
+    padding: 7px 10px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 4px; cursor: grab; font-size: 11px; color: var(--text2);
+    display: flex; align-items: center; gap: 8px;
+    transition: all 0.12s;
+  }
+  .palette-item:hover { background: var(--bg4); border-color: var(--border2); color: var(--text); }
+  .palette-item:active { cursor: grabbing; }
+  .palette-color { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ===== EDITOR AREA ===== */
+  .editor-area { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .editor-tabs { display: flex; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 8px; gap: 2px; align-items: flex-end; }
+  .editor-tab {
+    padding: 0 14px; height: 30px; font-size: 11px;
+    background: var(--bg3); border: 1px solid var(--border); border-bottom: none;
+    color: var(--text2); cursor: pointer; border-radius: 3px 3px 0 0;
+    display: flex; align-items: center; gap: 6px;
+    transition: all 0.12s;
+  }
+  .editor-tab.active { background: var(--bg); color: var(--text); border-color: var(--border2); }
+  .editor-tab .close-tab { width: 14px; height: 14px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 10px; opacity: 0.5; }
+  .editor-tab .close-tab:hover { background: var(--border2); opacity: 1; }
+
+  .ladder-canvas {
+    flex: 1; overflow: auto; padding: 20px;
+    background: var(--bg);
+    background-image:
+      linear-gradient(rgba(58,65,80,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(58,65,80,0.3) 1px, transparent 1px);
+    background-size: 20px 20px;
+  }
+  .ladder-canvas::-webkit-scrollbar { width: 8px; height: 8px; }
+  .ladder-canvas::-webkit-scrollbar-track { background: var(--bg2); }
+  .ladder-canvas::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  /* ===== LADDER LOGIC ===== */
+  .ladder-rung {
+    display: flex; align-items: center; margin-bottom: 4px;
+    position: relative; min-height: 60px;
+  }
+  .rung-number {
+    width: 32px; font-size: 10px; color: var(--text3);
+    font-family: 'Share Tech Mono', monospace; text-align: right;
+    padding-right: 8px; flex-shrink: 0; user-select: none;
+  }
+  .rung-body {
+    flex: 1; display: flex; align-items: center;
+    border: 1px solid var(--border); border-radius: 4px;
+    background: var(--bg2); min-height: 60px;
+    position: relative; overflow: visible;
+    padding: 0 8px;
+  }
+  .rung-body.energized { border-color: var(--green); box-shadow: 0 0 8px rgba(0,200,83,0.2); }
+  .rung-powerline {
+    position: absolute; top: 50%; left: 0; right: 0;
+    height: 2px; background: var(--border2); z-index: 0;
+    transform: translateY(-50%);
+    transition: background 0.2s;
+  }
+  .rung-body.energized .rung-powerline { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* ===== LADDER ELEMENTS ===== */
+  .ladder-el {
+    display: flex; flex-direction: column; align-items: center;
+    position: relative; z-index: 1; margin: 0 4px; min-width: 60px;
+  }
+  .el-label {
+    font-size: 9px; font-family: 'Share Tech Mono', monospace;
+    color: var(--text3); text-align: center; margin-bottom: 2px;
+    max-width: 70px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .el-body {
+    width: 50px; height: 36px; display: flex; align-items: center; justify-content: center;
+    position: relative; cursor: pointer; user-select: none;
+    transition: all 0.15s;
+  }
+  .el-body:hover { filter: brightness(1.3); }
+  .el-address {
+    font-size: 9px; font-family: 'Share Tech Mono', monospace;
+    color: var(--text3); margin-top: 2px; text-align: center;
+  }
+
+  /* Contacts */
+  .contact-NO, .contact-NC, .contact-P, .contact-N {
+    width: 46px; height: 32px; position: relative;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .contact-NO::before, .contact-NO::after {
+    content: ''; position: absolute; top: 50%; width: 12px; height: 2px;
+    background: var(--border2); transform: translateY(-50%);
+  }
+  .contact-NO::before { left: 0; }
+  .contact-NO::after { right: 0; }
+  .contact-bar {
+    width: 2px; height: 24px; background: var(--border2);
+    box-shadow: 4px 0 0 var(--border2);
+    margin: 0 8px;
+  }
+  .contact-NO.active .contact-bar,
+  .contact-NO.active::before,
+  .contact-NO.active::after { background: var(--green); box-shadow: 0 0 6px var(--green); }
+
+  /* NC - diagonal cross */
+  .contact-NC-bars { position: relative; width: 18px; height: 24px; margin: 0 6px; }
+  .contact-NC-bars::before, .contact-NC-bars::after {
+    content: ''; position: absolute; width: 2px; height: 24px;
+    background: var(--border2); left: 4px;
+  }
+  .contact-NC-bars::after { left: 12px; }
+  .slash { position: absolute; width: 22px; height: 2px; background: var(--orange); top: 50%; left: -2px; transform: rotate(-45deg) translateY(-50%); transform-origin: center; }
+  .contact-NC.active .contact-NC-bars::before,
+  .contact-NC.active .contact-NC-bars::after { background: var(--green); }
+
+  /* Coils */
+  .coil-body {
+    width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; color: var(--text3);
+  }
+  .coil-body.active { border-color: var(--green); color: var(--green); box-shadow: 0 0 10px rgba(0,200,83,0.5); background: rgba(0,200,83,0.1); }
+  .coil-body.set-coil { border-color: var(--accent); }
+  .coil-body.set-coil.active { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px rgba(0,151,230,0.5); background: rgba(0,151,230,0.1); }
+  .coil-wire { width: 8px; height: 2px; background: var(--border2); }
+  .coil-body.active + .coil-wire,
+  .coil-body.set-coil.active + .coil-wire { background: var(--green); }
+
+  /* Function Blocks */
+  .fb-block {
+    background: var(--bg3); border: 2px solid var(--border);
+    border-radius: 4px; padding: 6px 10px; min-width: 90px;
+    position: relative; margin: 0 6px;
+  }
+  .fb-block.active { border-color: var(--siemens); box-shadow: 0 0 10px rgba(0,153,153,0.3); }
+  .fb-title {
+    font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; color: var(--siemens);
+    border-bottom: 1px solid var(--border); padding-bottom: 3px; margin-bottom: 4px;
+  }
+  .fb-pins { display: flex; gap: 8px; }
+  .fb-inputs, .fb-outputs { display: flex; flex-direction: column; gap: 3px; }
+  .fb-pin { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--text3); font-family: 'Share Tech Mono', monospace; }
+  .fb-pin-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--border2); }
+  .fb-pin-dot.active { background: var(--green); box-shadow: 0 0 4px var(--green); }
+  .fb-pin-dot.out { background: var(--accent); }
+  .fb-pin-dot.out.active { background: var(--green); }
+
+  /* Rung add button */
+  .add-rung-btn {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; background: none; border: 1px dashed var(--border);
+    border-radius: 4px; color: var(--text3); cursor: pointer; font-size: 11px;
+    margin-top: 8px; width: 100%;
+    transition: all 0.15s;
+  }
+  .add-rung-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(0,151,230,0.05); }
+
+  /* ===== RIGHT PANEL ===== */
+  .right-panel {
+    width: 280px; background: var(--panel);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .rpanel-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .rpanel-tab {
+    flex: 1; height: 32px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .rpanel-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .rpanel-content { flex: 1; overflow-y: auto; }
+  .rpanel-content::-webkit-scrollbar { width: 4px; }
+  .rpanel-content::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* ===== IO TABLE ===== */
+  .io-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .io-table th {
+    background: var(--bg3); color: var(--text3); font-size: 9px;
+    font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+    padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+  }
+  .io-table td { padding: 4px 8px; border-bottom: 1px solid rgba(58,65,80,0.5); vertical-align: middle; }
+  .io-table tr:hover td { background: var(--bg3); }
+  .io-row.input td:first-child { border-left: 2px solid var(--accent); }
+  .io-row.output td:first-child { border-left: 2px solid var(--green); }
+  .io-row.marker td:first-child { border-left: 2px solid var(--yellow); }
+
+  .signal-led {
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--bg4); border: 1px solid var(--border2);
+    cursor: pointer; transition: all 0.15s;
+    display: inline-block;
+  }
+  .signal-led.on-I { background: var(--accent2); box-shadow: 0 0 6px var(--accent2); }
+  .signal-led.on-Q { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .signal-led.on-M { background: var(--yellow); box-shadow: 0 0 5px var(--yellow); }
+  .signal-led.forced { border: 2px solid var(--orange) !important; animation: forceflash 0.8s infinite; }
+  @keyframes forceflash { 0%,100%{box-shadow:0 0 0 0 var(--orange)} 50%{box-shadow:0 0 8px 2px var(--orange)} }
+
+  .force-btn-small {
+    width: 22px; height: 14px; font-size: 8px; font-weight: 700;
+    border-radius: 2px; border: 1px solid var(--border);
+    background: var(--bg4); color: var(--text3); cursor: pointer;
+    transition: all 0.12s;
+  }
+  .force-btn-small.active { background: var(--orange); border-color: var(--orange); color: #000; }
+
+  .address-cell { font-family: 'Share Tech Mono', monospace; color: var(--accent); font-size: 10px; }
+  .name-cell { color: var(--text); font-size: 11px; }
+  .val-cell { font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text2); }
+
+  /* ===== DB / VAR TABLE ===== */
+  .db-row { display: flex; padding: 5px 10px; gap: 8px; font-size: 11px; border-bottom: 1px solid rgba(58,65,80,0.4); align-items: center; }
+  .db-row:hover { background: var(--bg3); }
+  .db-type-tag { padding: 1px 6px; border-radius: 2px; font-size: 9px; font-weight: 600; font-family: 'Share Tech Mono', monospace; }
+  .tag-BOOL { background: rgba(0,151,230,0.2); color: var(--accent); }
+  .tag-INT { background: rgba(124,77,255,0.2); color: var(--purple); }
+  .tag-REAL { background: rgba(255,109,0,0.2); color: var(--orange); }
+  .tag-WORD { background: rgba(255,193,7,0.2); color: var(--yellow); }
+  .db-val { font-family: 'Share Tech Mono', monospace; color: var(--text2); font-size: 10px; margin-left: auto; }
+  .db-editable { background: var(--bg3); border: 1px solid var(--border); color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 10px; width: 60px; text-align: right; padding: 1px 4px; border-radius: 2px; }
+  .db-editable:focus { outline: none; border-color: var(--accent); }
+
+  /* ===== BOTTOM PANEL ===== */
+  .bottom-panel {
+    height: 160px; background: var(--panel);
+    border-top: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    flex-shrink: 0;
+  }
+  .bottom-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .bottom-tab {
+    padding: 0 14px; height: 28px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    background: none; border: none; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .bottom-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .log-content { flex: 1; overflow-y: auto; padding: 6px 12px; font-family: 'Share Tech Mono', monospace; font-size: 10px; }
+  .log-content::-webkit-scrollbar { width: 4px; }
+  .log-content::-webkit-scrollbar-thumb { background: var(--border); }
+  .log-line { padding: 1px 0; color: var(--text2); }
+  .log-line .ts { color: var(--text3); margin-right: 8px; }
+  .log-line.info .tag { color: var(--accent); }
+  .log-line.warn .tag { color: var(--yellow); }
+  .log-line.ok .tag { color: var(--green); }
+  .log-line.err .tag { color: var(--red); }
+
+  /* ===== MODAL / FORCE DIALOG ===== */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 999; display: none;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 6px; width: 420px; overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+  }
+  .modal-header {
+    padding: 12px 16px; background: var(--bg3); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; font-weight: 600;
+  }
+  .modal-header .close { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 16px; }
+  .modal-body { padding: 16px; }
+  .modal-force-table { width: 100%; font-size: 11px; }
+  .modal-force-table th { color: var(--text3); font-size: 10px; letter-spacing: 1px; padding: 4px 8px; text-align: left; }
+  .modal-force-table td { padding: 4px 8px; border-bottom: 1px solid rgba(58,65,80,0.4); }
+  .force-toggle { position: relative; width: 32px; height: 16px; cursor: pointer; }
+  .force-toggle input { opacity: 0; width: 0; height: 0; }
+  .force-slider {
+    position: absolute; inset: 0; background: var(--bg4);
+    border-radius: 8px; border: 1px solid var(--border2);
+    transition: all 0.2s;
+  }
+  .force-slider::after {
+    content: ''; position: absolute; width: 10px; height: 10px;
+    background: var(--text3); border-radius: 50%; top: 2px; left: 2px;
+    transition: all 0.2s;
+  }
+  .force-toggle input:checked + .force-slider { background: var(--orange); border-color: var(--orange); }
+  .force-toggle input:checked + .force-slider::after { transform: translateX(16px); background: #fff; }
+
+  /* ===== ADD ELEMENT MENU ===== */
+  .context-menu {
+    position: fixed; background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: 4px; z-index: 500; min-width: 180px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    display: none;
+  }
+  .context-menu.open { display: block; }
+  .ctx-item {
+    padding: 7px 14px; font-size: 11px; color: var(--text2);
+    cursor: pointer; display: flex; align-items: center; gap: 8px;
+    transition: all 0.1s;
+  }
+  .ctx-item:hover { background: var(--bg3); color: var(--text); }
+  .ctx-item .ctx-icon { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 10px; }
+  .ctx-sep { height: 1px; background: var(--border); margin: 4px 0; }
+
+  /* ===== SCAN TIME DISPLAY ===== */
+  .scan-info { display: flex; align-items: center; gap: 12px; padding: 0 16px; font-family: 'Share Tech Mono', monospace; font-size: 10px; color: var(--text3); }
+  .scan-info span { color: var(--siemens); }
+
+  /* ===== NETWORK DIAGRAM ===== */
+  .network-block {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 4px; margin-bottom: 8px; overflow: hidden;
+  }
+  .network-header {
+    padding: 6px 12px; background: var(--bg3); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; font-size: 11px;
+  }
+  .network-num { font-family: 'Share Tech Mono', monospace; color: var(--text3); font-size: 10px; }
+  .network-title { color: var(--text); }
+  .network-comment { color: var(--text3); font-size: 10px; margin-left: auto; font-style: italic; }
+
+  /* Tooltip */
+  [data-tip] { position: relative; }
+  [data-tip]:hover::after {
+    content: attr(data-tip);
+    position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%);
+    background: var(--bg4); color: var(--text); font-size: 10px;
+    padding: 3px 7px; border-radius: 3px; white-space: nowrap;
+    border: 1px solid var(--border); z-index: 1000; pointer-events: none;
+  }
+
+  /* Responsive tweaks */
+  @media (max-width: 1200px) { .right-panel { width: 240px; } }
+</style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">S7</div>
+    <div class="logo-text">PLC Simulator<span>TIA Portal Style v1.0</span></div>
+  </div>
+  <div class="header-nav">
+    <button onclick="showFileMenu()">Proyecto</button>
+    <button>Editar</button>
+    <button>Ver</button>
+    <button onclick="compileAll()">Compilar</button>
+    <button onclick="openForceModal()">Forzar</button>
+    <button>Diagnóstico</button>
+    <button>Online</button>
+    <button>Ayuda</button>
+  </div>
+  <div class="scan-info">
+    Ciclo: <span id="scanTime">0.0</span> ms | Errores: <span id="errCount">0</span>
+  </div>
+  <div class="header-status">
+    <div class="status-badge" id="plcStatus"><div class="status-dot"></div><span id="statusText">STOP</span></div>
+  </div>
+</div>
+
+<!-- ===== TOOLBAR ===== -->
+<div class="toolbar">
+  <button class="tb-btn run-btn" onclick="startPLC()" data-tip="Arrancar PLC (F5)">▶ RUN</button>
+  <button class="tb-btn stop-btn" onclick="stopPLC()" data-tip="Detener PLC (F4)">■ STOP</button>
+  <button class="tb-btn sim-btn" id="simBtn" onclick="toggleSim()" data-tip="Activar simulación online">⚡ SIMULAR</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn force-btn" onclick="openForceModal()" data-tip="Forzar señales (Ctrl+F)">⚠ FORZAR</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="addNetwork()" data-tip="Nuevo network">+ Network</button>
+  <button class="tb-btn" onclick="compileAll()" data-tip="Compilar programa">🔧 Compilar</button>
+  <button class="tb-btn" onclick="clearForces()" data-tip="Borrar todos los forzados">✖ Borrar Fuerzas</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="showBlocksTab('OB')">OB</button>
+  <button class="tb-btn" onclick="showBlocksTab('FB')">FB</button>
+  <button class="tb-btn" onclick="showBlocksTab('FC')">FC</button>
+  <button class="tb-btn" onclick="showBlocksTab('DB')">DB</button>
+  <div class="tb-sep"></div>
+  <button class="tb-btn" onclick="addNewIO('I')">+ Entrada</button>
+  <button class="tb-btn" onclick="addNewIO('Q')">+ Salida</button>
+  <button class="tb-btn" onclick="addNewIO('M')">+ Marca</button>
+</div>
+
+<!-- ===== MAIN ===== -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-tabs">
+      <button class="sidebar-tab active" onclick="showSideTab('project',this)">Proyecto</button>
+      <button class="sidebar-tab" onclick="showSideTab('blocks',this)">Bloques</button>
+      <button class="sidebar-tab" onclick="showSideTab('library',this)">Libr.</button>
+    </div>
+
+    <!-- Project tree -->
+    <div class="sidebar-content" id="sideProject">
+      <div class="tree-group">PLC_1 [CPU 1516-3 PN/DP]</div>
+      <div class="tree-item active" onclick="openTab('main','OB1 Main')">
+        <div class="icon">📋</div><div class="tree-label">OB1 [Main]</div>
+      </div>
+      <div class="tree-item" onclick="openTab('startup','OB100 Startup')">
+        <div class="icon">🔄</div><div class="tree-label">OB100 [Startup]</div>
+      </div>
+      <div class="tree-group">Bloques de función</div>
+      <div class="tree-item" id="tree-FB1" onclick="openTab('fb1','FB1 Motor')">
+        <div class="icon">🔲</div><div class="tree-label">FB1 [Motor]</div>
+      </div>
+      <div class="tree-item" id="tree-FC1" onclick="openTab('fc1','FC1 Cálculos')">
+        <div class="icon">⬡</div><div class="tree-label">FC1 [Cálculos]</div>
+      </div>
+      <div class="tree-group">Data Blocks</div>
+      <div class="tree-item" id="tree-DB1" onclick="openTab('db1','DB1 Motor_DB')">
+        <div class="icon">🗄</div><div class="tree-label">DB1 [Motor_DB]</div>
+      </div>
+      <div class="tree-item" onclick="openTab('db2','DB2 Global_DB')">
+        <div class="icon">🗄</div><div class="tree-label">DB2 [Global_DB]</div>
+      </div>
+      <div class="tree-group">Hardware</div>
+      <div class="tree-item">
+        <div class="icon">🔌</div><div class="tree-label">Configuración HW</div>
+      </div>
+      <div class="tree-item">
+        <div class="icon">📡</div><div class="tree-label">PROFINET IO</div>
+      </div>
+      <div class="tree-group">Tabla de Variables</div>
+      <div class="tree-item" onclick="openRightTab('io','Tabla I/O')">
+        <div class="icon">📊</div><div class="tree-label">Tabla PLC</div>
+      </div>
+    </div>
+
+    <!-- Blocks palette -->
+    <div class="sidebar-content" id="sideBlocks" style="display:none">
+      <div class="tree-group">Contactos</div>
+      <div class="block-palette">
+        <div class="palette-item" draggable="true" data-type="NO">
+          <div class="palette-color" style="background:var(--accent)"></div>—| |— Contacto NA
+        </div>
+        <div class="palette-item" draggable="true" data-type="NC">
+          <div class="palette-color" style="background:var(--orange)"></div>—|/|— Contacto NC
+        </div>
+        <div class="palette-item" draggable="true" data-type="P">
+          <div class="palette-color" style="background:var(--purple)"></div>—|P|— Flanco ↑
+        </div>
+        <div class="palette-item" draggable="true" data-type="N">
+          <div class="palette-color" style="background:var(--purple)"></div>—|N|— Flanco ↓
+        </div>
+      </div>
+      <div class="tree-group">Bobinas</div>
+      <div class="block-palette">
+        <div class="palette-item" draggable="true" data-type="COIL">
+          <div class="palette-color" style="background:var(--green)"></div>—( )— Bobina
+        </div>
+        <div class="palette-item" draggable="true" data-type="SET">
+          <div class="palette-color" style="background:var(--accent)"></div>—(S)— Set
+        </div>
+        <div class="palette-item" draggable="true" data-type="RESET">
+          <div class="palette-color" style="background:var(--red)"></div>—(R)— Reset
+        </div>
+      </div>
+      <div class="tree-group">Bloques</div>
+      <div class="block-palette">
+        <div class="palette-item" draggable="true" data-type="TON">
+          <div class="palette-color" style="background:var(--siemens)"></div>TON Temporizador ON
+        </div>
+        <div class="palette-item" draggable="true" data-type="TOF">
+          <div class="palette-color" style="background:var(--siemens)"></div>TOF Temporizador OFF
+        </div>
+        <div class="palette-item" draggable="true" data-type="CTU">
+          <div class="palette-color" style="background:var(--yellow)"></div>CTU Contador UP
+        </div>
+        <div class="palette-item" draggable="true" data-type="MOVE">
+          <div class="palette-color" style="background:var(--purple)"></div>MOVE Transferencia
+        </div>
+        <div class="palette-item" draggable="true" data-type="ADD">
+          <div class="palette-color" style="background:var(--orange)"></div>ADD Suma
+        </div>
+        <div class="palette-item" draggable="true" data-type="CMP">
+          <div class="palette-color" style="background:var(--yellow)"></div>CMP Comparador
+        </div>
+      </div>
+    </div>
+
+    <!-- Library -->
+    <div class="sidebar-content" id="sideLibrary" style="display:none">
+      <div class="tree-group">Librería de usuario</div>
+      <div class="tree-item"><div class="icon">📦</div><div class="tree-label">Control_Motor</div></div>
+      <div class="tree-item tree-indent"><div class="icon">🔲</div><div class="tree-label">FB_MotorControl</div></div>
+      <div class="tree-item tree-indent"><div class="icon">🗄</div><div class="tree-label">DB_MotorType</div></div>
+      <div class="tree-group">Librería global</div>
+      <div class="tree-item"><div class="icon">📦</div><div class="tree-label">Siemens</div></div>
+    </div>
+  </div>
+
+  <!-- EDITOR -->
+  <div class="editor-area">
+    <div class="editor-tabs" id="editorTabs">
+      <div class="editor-tab active" data-tab="main">
+        <span>OB1 Main</span><span class="close-tab" onclick="closeTab('main')">×</span>
+      </div>
+    </div>
+
+    <div class="ladder-canvas" id="ladderCanvas" oncontextmenu="showContextMenu(event)">
+      <!-- Networks renderizadas por JS -->
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="rpanel-tabs">
+      <button class="rpanel-tab active" id="rtab-io" onclick="openRightTab('io',this)">I/O</button>
+      <button class="rpanel-tab" id="rtab-db" onclick="openRightTab('db',this)">DB/Vars</button>
+      <button class="rpanel-tab" id="rtab-diag" onclick="openRightTab('diag',this)">Diag</button>
+    </div>
+    <div class="rpanel-content" id="rpanel-io">
+      <table class="io-table">
+        <thead><tr><th>Addr.</th><th>Nombre</th><th>Estado</th><th>F</th></tr></thead>
+        <tbody id="ioTableBody"></tbody>
+      </table>
+    </div>
+    <div class="rpanel-content" id="rpanel-db" style="display:none">
+      <div id="dbContent"></div>
+    </div>
+    <div class="rpanel-content" id="rpanel-diag" style="display:none">
+      <div style="padding:10px">
+        <div class="tree-group">Estado CPU</div>
+        <div class="db-row"><span style="color:var(--text3);font-size:11px">Modo operación</span><span id="diagMode" class="db-val">STOP</span></div>
+        <div class="db-row"><span style="color:var(--text3);font-size:11px">Ciclos totales</span><span id="diagCycles" class="db-val">0</span></div>
+        <div class="db-row"><span style="color:var(--text3);font-size:11px">Tiempo ciclo máx.</span><span id="diagMaxCycle" class="db-val">0 ms</span></div>
+        <div class="db-row"><span style="color:var(--text3);font-size:11px">Tiempo ciclo mín.</span><span id="diagMinCycle" class="db-val">0 ms</span></div>
+        <div class="db-row"><span style="color:var(--text3);font-size:11px">Mem. carga</span><span class="db-val">1.2 MB</span></div>
+        <div class="db-row"><span style="color:var(--text3);font-size:11px">Mem. trabajo</span><span class="db-val">384 KB</span></div>
+        <div class="tree-group" style="margin-top:8px">Buffer de diagnóstico</div>
+        <div id="diagBuffer" style="padding:4px 8px;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--text3)">Sin eventos</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM PANEL -->
+<div class="bottom-panel">
+  <div class="bottom-tabs">
+    <button class="bottom-tab active" onclick="showBottomTab('log',this)">Log de compilación</button>
+    <button class="bottom-tab" onclick="showBottomTab('crossref',this)">Referencias cruzadas</button>
+    <button class="bottom-tab" onclick="showBottomTab('watch',this)">Tabla Watch</button>
+  </div>
+  <div class="log-content" id="logPanel"></div>
+  <div class="log-content" id="crossrefPanel" style="display:none">
+    <table style="width:100%;font-size:10px;font-family:'Share Tech Mono',monospace;border-collapse:collapse">
+      <tr style="color:var(--text3)"><th style="text-align:left;padding:2px 6px">Variable</th><th>Tipo</th><th>Usada en</th><th>Rung</th></tr>
+      <tr><td style="padding:2px 6px;color:var(--accent)">I0.0</td><td style="color:var(--text2)">BOOL</td><td style="color:var(--text2)">OB1</td><td style="color:var(--text3)">N1R1, N3R1</td></tr>
+      <tr><td style="padding:2px 6px;color:var(--accent)">I0.1</td><td style="color:var(--text2)">BOOL</td><td style="color:var(--text2)">OB1</td><td style="color:var(--text3)">N1R1</td></tr>
+      <tr><td style="padding:2px 6px;color:var(--green)">Q0.0</td><td style="color:var(--text2)">BOOL</td><td style="color:var(--text2)">OB1</td><td style="color:var(--text3)">N1R1</td></tr>
+      <tr><td style="padding:2px 6px;color:var(--green)">Q0.1</td><td style="color:var(--text2)">BOOL</td><td style="color:var(--text2)">OB1</td><td style="color:var(--text3)">N2R1</td></tr>
+    </table>
+  </div>
+  <div class="log-content" id="watchPanel" style="display:none">
+    <table style="width:100%;font-size:10px;font-family:'Share Tech Mono',monospace;border-collapse:collapse">
+      <thead><tr style="color:var(--text3)"><th style="text-align:left;padding:2px 6px">Dirección</th><th>Nombre</th><th>Tipo</th><th>Valor monitor</th></tr></thead>
+      <tbody id="watchBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- FORCE MODAL -->
+<div class="modal-overlay" id="forceModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span>⚠ Forzado de señales — Modo Online</span>
+      <button class="close" onclick="closeForceModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11px;color:var(--yellow);margin-bottom:12px">⚠ El forzado anula la lógica del programa. Úselo solo para diagnóstico.</p>
+      <table class="modal-force-table" id="forceTable">
+        <thead><tr><th>Dirección</th><th>Nombre</th><th>Valor forzado</th><th>Activar</th></tr></thead>
+        <tbody id="forceTableBody"></tbody>
+      </table>
+      <div style="margin-top:12px;display:flex;gap:8px;justify-content:flex-end">
+        <button class="tb-btn stop-btn" onclick="clearForces();closeForceModal()">Borrar todos</button>
+        <button class="tb-btn sim-btn" onclick="closeForceModal()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div class="context-menu" id="contextMenu">
+  <div class="ctx-item" onclick="addRungToCurrentNetwork()"><div class="ctx-icon">➕</div>Añadir rung</div>
+  <div class="ctx-item" onclick="addNetwork()"><div class="ctx-icon">🔳</div>Añadir network</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxAddElement('NO')"><div class="ctx-icon">—| |—</div>Contacto NA</div>
+  <div class="ctx-item" onclick="ctxAddElement('NC')"><div class="ctx-icon">—|/|—</div>Contacto NC</div>
+  <div class="ctx-item" onclick="ctxAddElement('COIL')"><div class="ctx-icon">—( )—</div>Bobina</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="ctxAddElement('TON')"><div class="ctx-icon">⏱</div>Temporizador TON</div>
+  <div class="ctx-item" onclick="ctxAddElement('CTU')"><div class="ctx-icon">🔢</div>Contador CTU</div>
+  <div class="ctx-item" onclick="ctxAddElement('MOVE')"><div class="ctx-icon">➡</div>MOVE</div>
+  <div class="ctx-item" onclick="ctxAddElement('ADD')"><div class="ctx-icon">➕</div>ADD</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" onclick="deleteSelectedRung()"><div class="ctx-icon" style="color:var(--red)">🗑</div>Borrar rung</div>
+</div>
+
+<script>
+// ================================================================
+// PLC SIMULATOR — CORE ENGINE
+// ================================================================
+const state = {
+  running: false,
+  simOnline: false,
+  scanCycle: 0,
+  scanTime: 0,
+  maxScan: 0, minScan: 9999,
+  timer: null,
+  selectedRung: null,
+  selectedNetwork: 0,
+  openTabs: ['main'],
+  activeTab: 'main',
+};
+
+// Signal memory
+const signals = {};   // key: "I0.0", value: { val: bool, forced: bool, forcedVal: bool, name: str, type: 'I'|'Q'|'M' }
+const dbVars = {
+  'DB1': [
+    { name: 'Motor_On', type: 'BOOL', val: false },
+    { name: 'Motor_Speed', type: 'INT', val: 0 },
+    { name: 'Motor_Current', type: 'REAL', val: 0.0 },
+    { name: 'Run_Hours', type: 'INT', val: 1247 },
+  ],
+  'DB2': [
+    { name: 'Counter_Val', type: 'INT', val: 0 },
+    { name: 'Set_Point', type: 'REAL', val: 100.0 },
+    { name: 'Alarm_Active', type: 'BOOL', val: false },
+    { name: 'Mode_Word', type: 'WORD', val: 0x0001 },
+  ]
+};
+
+// Default I/O signals
+const defaultSignals = [
+  { addr: 'I0.0', name: 'Start_PB', type: 'I' },
+  { addr: 'I0.1', name: 'Stop_PB', type: 'I' },
+  { addr: 'I0.2', name: 'Emergency_Stop', type: 'I' },
+  { addr: 'I0.3', name: 'Sensor_Lim1', type: 'I' },
+  { addr: 'I0.4', name: 'Sensor_Lim2', type: 'I' },
+  { addr: 'I0.5', name: 'Fault_FB', type: 'I' },
+  { addr: 'I1.0', name: 'Mode_Auto', type: 'I' },
+  { addr: 'I1.1', name: 'Mode_Manual', type: 'I' },
+  { addr: 'Q0.0', name: 'Motor_Run', type: 'Q' },
+  { addr: 'Q0.1', name: 'Conveyor_Fwd', type: 'Q' },
+  { addr: 'Q0.2', name: 'Alarm_Horn', type: 'Q' },
+  { addr: 'Q0.3', name: 'Lamp_Run', type: 'Q' },
+  { addr: 'Q0.4', name: 'Lamp_Fault', type: 'Q' },
+  { addr: 'Q1.0', name: 'Valve_1', type: 'Q' },
+  { addr: 'Q1.1', name: 'Valve_2', type: 'Q' },
+  { addr: 'M0.0', name: 'Motor_Latch', type: 'M' },
+  { addr: 'M0.1', name: 'Fault_Mem', type: 'M' },
+  { addr: 'M0.2', name: 'Cycle_Bit', type: 'M' },
+  { addr: 'M10.0', name: 'AlwaysON', type: 'M' },
+];
+defaultSignals.forEach(s => {
+  signals[s.addr] = { val: s.addr === 'M10.0', forced: false, forcedVal: false, name: s.name, type: s.type };
+});
+
+// ================================================================
+// LADDER PROGRAM DEFINITION
+// ================================================================
+// networks: array of { title, comment, rungs: [{ elements: [...] }] }
+let networks = [
+  {
+    title: 'Network 1', comment: 'Control arranque motor',
+    rungs: [
+      { elements: [
+        { type: 'NO', addr: 'I0.0', label: 'Start_PB' },
+        { type: 'NO', addr: 'M0.0', label: 'Motor_Latch' },
+        { type: 'NC', addr: 'I0.1', label: 'Stop_PB' },
+        { type: 'NC', addr: 'I0.2', label: 'E_Stop' },
+        { type: 'COIL', addr: 'Q0.0', label: 'Motor_Run' },
+      ]},
+      { elements: [
+        { type: 'NO', addr: 'Q0.0', label: 'Motor_Run' },
+        { type: 'COIL', addr: 'M0.0', label: 'Motor_Latch' },
+      ]},
+    ]
+  },
+  {
+    title: 'Network 2', comment: 'Señal de marcha y lámpara',
+    rungs: [
+      { elements: [
+        { type: 'NO', addr: 'Q0.0', label: 'Motor_Run' },
+        { type: 'NO', addr: 'I1.0', label: 'Mode_Auto' },
+        { type: 'COIL', addr: 'Q0.1', label: 'Conveyor' },
+      ]},
+    ]
+  },
+  {
+    title: 'Network 3', comment: 'FB1 Control Motor',
+    rungs: [
+      { elements: [
+        { type: 'NO', addr: 'I0.0', label: 'Start' },
+        { type: 'FB', name: 'FB1', instance: 'DB1', pins: { IN: ['EN','Start','Stop'], OUT: ['Running','Fault'] }, addr: '' },
+        { type: 'COIL', addr: 'Q0.3', label: 'Lamp_Run' },
+      ]},
+    ]
+  },
+  {
+    title: 'Network 4', comment: 'Temporizador TON',
+    rungs: [
+      { elements: [
+        { type: 'NO', addr: 'Q0.0', label: 'Motor_Run' },
+        { type: 'TON', name: 'TON', instance: 'IEC_Timer_0_DB', pt: '5s', addr: '' },
+        { type: 'COIL', addr: 'Q0.2', label: 'Alarm_Horn' },
+      ]},
+    ]
+  },
+];
+
+// timer states
+const timerStates = {};
+const counterStates = {};
+
+// ================================================================
+// RENDER LADDER
+// ================================================================
+function getSignalVal(addr) {
+  if (!signals[addr]) return false;
+  const s = signals[addr];
+  return s.forced ? s.forcedVal : s.val;
+}
+
+function setSignalVal(addr, val) {
+  if (!signals[addr]) return;
+  if (!signals[addr].forced) signals[addr].val = val;
+}
+
+function renderLadder() {
+  const canvas = document.getElementById('ladderCanvas');
+  canvas.innerHTML = '';
+
+  networks.forEach((net, ni) => {
+    const netDiv = document.createElement('div');
+    netDiv.className = 'network-block';
+    netDiv.id = 'net-' + ni;
+
+    const header = document.createElement('div');
+    header.className = 'network-header';
+    header.innerHTML = `
+      <span class="network-num">${String(ni+1).padStart(3,'0')}</span>
+      <span class="network-title" contenteditable="true" onblur="networks[${ni}].title=this.innerText">${net.title}</span>
+      <span class="network-comment" contenteditable="true" onblur="networks[${ni}].comment=this.innerText">${net.comment || ''}</span>
+      <button class="tb-btn" style="margin-left:8px;font-size:9px" onclick="deleteNetwork(${ni})">✕</button>
+      <button class="tb-btn" style="font-size:9px" onclick="addRungToNetwork(${ni})">+ Rung</button>
+    `;
+    netDiv.appendChild(header);
+
+    const body = document.createElement('div');
+    body.style.padding = '8px 12px';
+
+    net.rungs.forEach((rung, ri) => {
+      const rungDiv = renderRung(rung, ni, ri);
+      body.appendChild(rungDiv);
+    });
+
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-rung-btn';
+    addBtn.innerHTML = '+ Añadir rung';
+    addBtn.onclick = () => addRungToNetwork(ni);
+    body.appendChild(addBtn);
+
+    netDiv.appendChild(body);
+    canvas.appendChild(netDiv);
+  });
+
+  const addNetBtn = document.createElement('button');
+  addNetBtn.className = 'add-rung-btn';
+  addNetBtn.innerHTML = '+ Añadir Network';
+  addNetBtn.style.margin = '8px 0';
+  addNetBtn.onclick = addNetwork;
+  canvas.appendChild(addNetBtn);
+}
+
+function renderRung(rung, ni, ri) {
+  const rungDiv = document.createElement('div');
+  rungDiv.className = 'ladder-rung';
+  rungDiv.id = `rung-${ni}-${ri}`;
+  rungDiv.onclick = (e) => { e.stopPropagation(); selectRung(ni, ri); };
+
+  const numDiv = document.createElement('div');
+  numDiv.className = 'rung-number';
+  numDiv.textContent = ri + 1;
+  rungDiv.appendChild(numDiv);
+
+  // Evaluate rung logic
+  const { energized, coilAddr } = evaluateRung(rung);
+
+  const bodyDiv = document.createElement('div');
+  bodyDiv.className = 'rung-body' + (energized ? ' energized' : '');
+
+  const powerline = document.createElement('div');
+  powerline.className = 'rung-powerline';
+  bodyDiv.appendChild(powerline);
+
+  rung.elements.forEach((el, ei) => {
+    bodyDiv.appendChild(renderElement(el, ni, ri, ei, energized));
+  });
+
+  // delete button on rung
+  const delBtn = document.createElement('button');
+  delBtn.className = 'tb-btn';
+  delBtn.style.cssText = 'margin-left:8px;font-size:9px;position:relative;z-index:2;flex-shrink:0';
+  delBtn.textContent = '✕';
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteRung(ni, ri); };
+  bodyDiv.appendChild(delBtn);
+
+  rungDiv.appendChild(bodyDiv);
+  return rungDiv;
+}
+
+function evaluateRung(rung) {
+  let power = true;
+  let coilAddr = null;
+
+  for (const el of rung.elements) {
+    if (el.type === 'NO') {
+      power = power && getSignalVal(el.addr);
+    } else if (el.type === 'NC') {
+      power = power && !getSignalVal(el.addr);
+    } else if (el.type === 'P') {
+      // rising edge - simplified
+      power = power && getSignalVal(el.addr);
+    } else if (el.type === 'N') {
+      power = power && !getSignalVal(el.addr);
+    } else if (el.type === 'COIL') {
+      coilAddr = el.addr;
+      if (state.running) setSignalVal(el.addr, power);
+    } else if (el.type === 'SET') {
+      if (state.running && power) setSignalVal(el.addr, true);
+    } else if (el.type === 'RESET') {
+      if (state.running && power) setSignalVal(el.addr, false);
+    } else if (el.type === 'FB') {
+      // FB call - pass through with gate
+    } else if (el.type === 'TON') {
+      const key = el.instance || 'ton_default';
+      if (!timerStates[key]) timerStates[key] = { acc: 0, q: false };
+      const t = timerStates[key];
+      if (state.running) {
+        if (power) {
+          const pt = parsePT(el.pt || '5s');
+          t.acc = Math.min(t.acc + state.scanTime, pt);
+          t.q = (t.acc >= pt);
+        } else {
+          t.acc = 0; t.q = false;
+        }
+      }
+      power = power && t.q;
+    } else if (el.type === 'CTU') {
+      const key = el.instance || 'ctu_default';
+      if (!counterStates[key]) counterStates[key] = { cv: 0, q: false };
+      // simplified
+    }
+  }
+  return { energized: power, coilAddr };
+}
+
+function parsePT(str) {
+  const match = str.match(/(\d+(\.\d+)?)(ms|s|m)/i);
+  if (!match) return 5000;
+  const v = parseFloat(match[1]);
+  const u = match[3].toLowerCase();
+  if (u === 'ms') return v;
+  if (u === 's') return v * 1000;
+  if (u === 'm') return v * 60000;
+  return 5000;
+}
+
+function renderElement(el, ni, ri, ei, energized) {
+  const wrap = document.createElement('div');
+  wrap.className = 'ladder-el';
+
+  if (el.type === 'NO' || el.type === 'NC' || el.type === 'P' || el.type === 'N') {
+    const isActive = getSignalVal(el.addr);
+    const label = document.createElement('div');
+    label.className = 'el-label';
+    label.textContent = el.label || el.addr;
+
+    const body = document.createElement('div');
+    body.className = 'el-body';
+    body.title = el.addr;
+
+    if (el.type === 'NO') {
+      const bar1 = document.createElement('div'); bar1.style.cssText = 'width:10px;height:2px;background:'+(isActive?'var(--green)':'var(--border2)');
+      const bars = document.createElement('div'); bars.className = 'contact-bar'; if(isActive) { bars.style.background='var(--green)'; bars.style.boxShadow='0 0 6px var(--green)'; }
+      const bar2 = document.createElement('div'); bar2.style.cssText = 'width:10px;height:2px;background:'+(isActive?'var(--green)':'var(--border2)');
+      body.appendChild(bar1); body.appendChild(bars); body.appendChild(bar2);
+    } else if (el.type === 'NC') {
+      const bar1 = document.createElement('div'); bar1.style.cssText = 'width:8px;height:2px;background:var(--border2)';
+      const ncw = document.createElement('div'); ncw.style.cssText = 'position:relative;width:18px;height:28px;margin:0 2px';
+      ncw.innerHTML = `<div style="position:absolute;left:3px;top:0;width:2px;height:28px;background:${isActive?'var(--green)':'var(--border2)'}"></div><div style="position:absolute;left:11px;top:0;width:2px;height:28px;background:${isActive?'var(--green)':'var(--border2)'}"></div><div style="position:absolute;width:20px;height:2px;background:var(--orange);top:50%;left:-2px;transform:rotate(-40deg)"></div>`;
+      const bar2 = document.createElement('div'); bar2.style.cssText = 'width:8px;height:2px;background:var(--border2)';
+      body.appendChild(bar1); body.appendChild(ncw); body.appendChild(bar2);
+    } else {
+      body.innerHTML = `<span style="font-size:10px;color:var(--purple);font-family:'Share Tech Mono',monospace">${el.type==='P'?'↑P':'↓N'}</span>`;
+    }
+
+    body.onclick = (e) => { e.stopPropagation(); if(!state.running&&!state.simOnline) promptRename(el, ni, ri, ei); else toggleInput(el.addr); };
+
+    const addr = document.createElement('div');
+    addr.className = 'el-address';
+    addr.style.color = isActive ? 'var(--green)' : 'var(--text3)';
+    addr.textContent = el.addr;
+
+    wrap.appendChild(label); wrap.appendChild(body); wrap.appendChild(addr);
+
+  } else if (el.type === 'COIL' || el.type === 'SET' || el.type === 'RESET') {
+    const coilActive = getSignalVal(el.addr) || energized;
+    const label = document.createElement('div');
+    label.className = 'el-label';
+    label.textContent = el.label || el.addr;
+
+    const body = document.createElement('div');
+    body.className = 'el-body';
+    body.style.justifyContent = 'center';
+    body.style.gap = '2px';
+    const sym = el.type === 'COIL' ? '·' : (el.type === 'SET' ? 'S' : 'R');
+    body.innerHTML = `<div style="width:8px;height:2px;background:var(--border2)"></div><div class="coil-body${coilActive?' active':''}${el.type==='SET'?' set-coil':''}" style="${el.type==='RESET'?'border-color:var(--red);'+(coilActive?'background:rgba(255,61,0,0.1);color:var(--red);':''):''}">${sym}</div><div style="width:8px;height:2px;background:var(--border2)"></div>`;
+
+    const addr = document.createElement('div');
+    addr.className = 'el-address';
+    addr.style.color = coilActive ? 'var(--green)' : 'var(--text3)';
+    addr.textContent = el.addr;
+
+    body.onclick = (e) => { e.stopPropagation(); if(!state.running) promptRename(el, ni, ri, ei); };
+    wrap.appendChild(label); wrap.appendChild(body); wrap.appendChild(addr);
+
+  } else if (el.type === 'FB') {
+    const fb = document.createElement('div');
+    fb.className = 'fb-block' + (energized ? ' active' : '');
+    const inPins = el.pins ? el.pins.IN : ['IN1','IN2'];
+    const outPins = el.pins ? el.pins.OUT : ['OUT1'];
+    fb.innerHTML = `
+      <div class="fb-title">${el.name} [${el.instance}]</div>
+      <div class="fb-pins">
+        <div class="fb-inputs">
+          ${inPins.map(p => `<div class="fb-pin"><div class="fb-pin-dot${energized?' active':''}"></div>${p}</div>`).join('')}
+        </div>
+        <div style="width:1px;background:var(--border);margin:0 6px"></div>
+        <div class="fb-outputs">
+          ${outPins.map(p => `<div class="fb-pin"><div class="fb-pin-dot out${energized?' active':''}"></div>${p}</div>`).join('')}
+        </div>
+      </div>`;
+    wrap.appendChild(fb);
+
+  } else if (el.type === 'TON' || el.type === 'TOF') {
+    const key = el.instance || 'ton_default';
+    const t = timerStates[key] || { acc: 0, q: false };
+    const pt = parsePT(el.pt || '5s');
+    const pct = Math.min(100, (t.acc / pt) * 100);
+    const fb = document.createElement('div');
+    fb.className = 'fb-block' + (t.q ? ' active' : '');
+    fb.innerHTML = `
+      <div class="fb-title">${el.type} — ${el.instance}</div>
+      <div class="fb-pins">
+        <div class="fb-inputs">
+          <div class="fb-pin"><div class="fb-pin-dot${energized?' active':''}"></div>IN</div>
+          <div class="fb-pin"><div class="fb-pin-dot"></div>PT: ${el.pt}</div>
+        </div>
+        <div style="width:1px;background:var(--border);margin:0 6px"></div>
+        <div class="fb-outputs">
+          <div class="fb-pin"><div class="fb-pin-dot out${t.q?' active':''}"></div>Q</div>
+          <div class="fb-pin"><div class="fb-pin-dot out"></div>ET: ${(t.acc/1000).toFixed(1)}s</div>
+        </div>
+      </div>
+      <div style="margin-top:4px;height:4px;background:var(--bg4);border-radius:2px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${t.q?'var(--green)':'var(--siemens)'};transition:width 0.1s"></div>
+      </div>`;
+    wrap.appendChild(fb);
+
+  } else if (el.type === 'CTU') {
+    const key = el.instance || 'ctu_default';
+    const c = counterStates[key] || { cv: 0, q: false };
+    const fb = document.createElement('div');
+    fb.className = 'fb-block' + (energized ? ' active' : '');
+    fb.innerHTML = `
+      <div class="fb-title">CTU — ${el.instance||'CTU_0'}</div>
+      <div class="fb-pins">
+        <div class="fb-inputs">
+          <div class="fb-pin"><div class="fb-pin-dot${energized?' active':''}"></div>CU</div>
+          <div class="fb-pin"><div class="fb-pin-dot"></div>R</div>
+          <div class="fb-pin"><div class="fb-pin-dot"></div>PV: ${el.pv||10}</div>
+        </div>
+        <div style="width:1px;background:var(--border);margin:0 6px"></div>
+        <div class="fb-outputs">
+          <div class="fb-pin"><div class="fb-pin-dot out${c.q?' active':''}"></div>Q</div>
+          <div class="fb-pin"><div class="fb-pin-dot out"></div>CV: ${c.cv}</div>
+        </div>
+      </div>`;
+    wrap.appendChild(fb);
+  } else if (el.type === 'MOVE' || el.type === 'ADD' || el.type === 'CMP') {
+    const icons = { MOVE:'→', ADD:'+', CMP:'≥' };
+    const fb = document.createElement('div');
+    fb.className = 'fb-block' + (energized ? ' active' : '');
+    fb.innerHTML = `
+      <div class="fb-title">${el.type} ${icons[el.type]||''}</div>
+      <div class="fb-pins">
+        <div class="fb-inputs">
+          <div class="fb-pin"><div class="fb-pin-dot${energized?' active':''}"></div>EN</div>
+          <div class="fb-pin"><div class="fb-pin-dot"></div>IN: ${el.in1||'#MW0'}</div>
+        </div>
+        <div style="width:1px;background:var(--border);margin:0 6px"></div>
+        <div class="fb-outputs">
+          <div class="fb-pin"><div class="fb-pin-dot out${energized?' active':''}"></div>ENO</div>
+          <div class="fb-pin"><div class="fb-pin-dot out"></div>OUT: ${el.out||'#MW2'}</div>
+        </div>
+      </div>`;
+    wrap.appendChild(fb);
+  }
+
+  return wrap;
+}
+
+// ================================================================
+// PLC SCAN CYCLE
+// ================================================================
+function plcScan() {
+  const t0 = performance.now();
+
+  // Reset output signals (only those driven by program)
+  networks.forEach(net => {
+    net.rungs.forEach(rung => {
+      rung.elements.forEach(el => {
+        if ((el.type === 'COIL') && signals[el.addr] && !signals[el.addr].forced) {
+          signals[el.addr].val = false;
+        }
+      });
+    });
+  });
+
+  // Execute all rungs
+  networks.forEach(net => net.rungs.forEach(rung => evaluateRung(rung)));
+
+  // M10.0 always ON
+  if (signals['M10.0']) signals['M10.0'].val = true;
+
+  const elapsed = performance.now() - t0;
+  state.scanTime = elapsed + Math.random() * 0.5;
+  state.maxScan = Math.max(state.maxScan, state.scanTime);
+  state.minScan = Math.min(state.minScan, state.scanTime);
+  state.scanCycle++;
+
+  document.getElementById('scanTime').textContent = state.scanTime.toFixed(2);
+  document.getElementById('errCount').textContent = '0';
+  document.getElementById('diagCycles').textContent = state.scanCycle;
+  document.getElementById('diagMaxCycle').textContent = state.maxScan.toFixed(2) + ' ms';
+  document.getElementById('diagMinCycle').textContent = state.minScan.toFixed(2) + ' ms';
+
+  renderLadder();
+  updateIOTable();
+  updateWatchTable();
+}
+
+// ================================================================
+// PLC CONTROLS
+// ================================================================
+function startPLC() {
+  state.running = true;
+  state.simOnline = true;
+  updateStatus('run');
+  document.getElementById('simBtn').classList.add('active');
+  state.timer = setInterval(plcScan, 100);
+  addLog('ok', 'PLC', 'CPU 1516 — Modo RUN activado');
+  addLog('info', 'SCAN', 'Ciclo de scan iniciado @ 100ms');
+}
+
+function stopPLC() {
+  state.running = false;
+  state.simOnline = false;
+  updateStatus('stop');
+  document.getElementById('simBtn').classList.remove('active');
+  if (state.timer) { clearInterval(state.timer); state.timer = null; }
+  addLog('warn', 'PLC', 'CPU 1516 — Modo STOP activado');
+  renderLadder();
+  updateIOTable();
+}
+
+function toggleSim() {
+  if (!state.running) startPLC();
+  else stopPLC();
+}
+
+function updateStatus(mode) {
+  const badge = document.getElementById('plcStatus');
+  badge.className = 'status-badge ' + mode;
+  document.getElementById('statusText').textContent = mode.toUpperCase();
+  document.getElementById('diagMode').textContent = mode.toUpperCase();
+}
+
+// ================================================================
+// IO TABLE
+// ================================================================
+function updateIOTable() {
+  const tbody = document.getElementById('ioTableBody');
+  tbody.innerHTML = '';
+
+  const sorted = Object.entries(signals).sort((a,b) => a[0].localeCompare(b[0]));
+  sorted.forEach(([addr, sig]) => {
+    const tr = document.createElement('tr');
+    tr.className = `io-row ${sig.type === 'I' ? 'input' : sig.type === 'Q' ? 'output' : 'marker'}`;
+
+    const typeClass = sig.type === 'I' ? 'on-I' : sig.type === 'Q' ? 'on-Q' : 'on-M';
+    const isOn = sig.forced ? sig.forcedVal : sig.val;
+
+    tr.innerHTML = `
+      <td class="address-cell">${addr}</td>
+      <td class="name-cell" style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${sig.name}">${sig.name}</td>
+      <td><span class="signal-led ${isOn ? typeClass : ''}${sig.forced ? ' forced' : ''}" onclick="toggleSignalFromTable('${addr}')" title="${isOn?'TRUE':'FALSE'}${sig.forced?' [FORZADO]':''}"></span></td>
+      <td><button class="force-btn-small${sig.forced ? ' active' : ''}" onclick="toggleForce('${addr}')" title="Forzar ${addr}">F</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function toggleSignalFromTable(addr) {
+  if (!signals[addr]) return;
+  if (signals[addr].forced) {
+    signals[addr].forcedVal = !signals[addr].forcedVal;
+  } else if (signals[addr].type === 'I') {
+    signals[addr].val = !signals[addr].val;
+  } else if (!state.running) {
+    signals[addr].val = !signals[addr].val;
+  }
+  if (!state.running) { renderLadder(); updateIOTable(); }
+}
+
+function toggleInput(addr) {
+  if (!signals[addr]) return;
+  if (signals[addr].type === 'I' || !state.running) {
+    signals[addr].val = !signals[addr].val;
+    if (!state.running) { evaluateRung; renderLadder(); updateIOTable(); }
+  }
+}
+
+function toggleForce(addr) {
+  if (!signals[addr]) return;
+  signals[addr].forced = !signals[addr].forced;
+  if (signals[addr].forced) {
+    addLog('warn', 'FORCE', `Señal ${addr} (${signals[addr].name}) FORZADA a ${signals[addr].val ? 'TRUE' : 'FALSE'}`);
+  } else {
+    addLog('ok', 'FORCE', `Forzado eliminado de ${addr}`);
+  }
+  updateIOTable();
+  renderForceModal();
+}
+
+function clearForces() {
+  Object.keys(signals).forEach(k => { signals[k].forced = false; });
+  addLog('ok', 'FORCE', 'Todos los forzados eliminados');
+  updateIOTable();
+  renderForceModal();
+}
+
+// ================================================================
+// FORCE MODAL
+// ================================================================
+function openForceModal() {
+  document.getElementById('forceModal').classList.add('open');
+  renderForceModal();
+}
+function closeForceModal() {
+  document.getElementById('forceModal').classList.remove('open');
+}
+function renderForceModal() {
+  const tbody = document.getElementById('forceTableBody');
+  tbody.innerHTML = '';
+  Object.entries(signals).sort((a,b)=>a[0].localeCompare(b[0])).forEach(([addr, sig]) => {
+    const tr = document.createElement('tr');
+    const isOn = sig.forced ? sig.forcedVal : sig.val;
+    tr.innerHTML = `
+      <td style="font-family:'Share Tech Mono',monospace;color:var(--accent);font-size:10px">${addr}</td>
+      <td style="font-size:11px;color:var(--text2)">${sig.name}</td>
+      <td>
+        <label class="force-toggle" title="Valor forzado">
+          <input type="checkbox" ${sig.forcedVal?'checked':''} onchange="signals['${addr}'].forcedVal=this.checked">
+          <span class="force-slider"></span>
+        </label>
+      </td>
+      <td>
+        <label class="force-toggle">
+          <input type="checkbox" ${sig.forced?'checked':''} onchange="toggleForce('${addr}')">
+          <span class="force-slider"></span>
+        </label>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ================================================================
+// NETWORK / RUNG MANAGEMENT
+// ================================================================
+function addNetwork() {
+  networks.push({ title: `Network ${networks.length+1}`, comment: 'Nuevo network', rungs: [{ elements: [] }] });
+  renderLadder();
+  addLog('info', 'EDIT', `Network ${networks.length} añadido`);
+}
+
+function deleteNetwork(ni) {
+  if (networks.length <= 1) return;
+  networks.splice(ni, 1);
+  renderLadder();
+}
+
+function addRungToNetwork(ni) {
+  networks[ni].rungs.push({ elements: [] });
+  renderLadder();
+}
+
+function addRungToCurrentNetwork() {
+  addRungToNetwork(state.selectedNetwork);
+}
+
+function deleteRung(ni, ri) {
+  if (networks[ni].rungs.length <= 1) { networks[ni].rungs[ri].elements = []; }
+  else networks[ni].rungs.splice(ri, 1);
+  renderLadder();
+}
+
+function deleteSelectedRung() {
+  const [ni, ri] = (state.selectedRung || '0-0').split('-').map(Number);
+  deleteRung(ni, ri);
+}
+
+function selectRung(ni, ri) {
+  state.selectedRung = `${ni}-${ri}`;
+  state.selectedNetwork = ni;
+}
+
+function ctxAddElement(type) {
+  if (state.selectedRung === null) state.selectedRung = '0-0';
+  const [ni, ri] = state.selectedRung.split('-').map(Number);
+  const defaults = {
+    NO: { type:'NO', addr:'I0.0', label:'Signal' },
+    NC: { type:'NC', addr:'I0.1', label:'Signal_NC' },
+    COIL: { type:'COIL', addr:'Q0.0', label:'Output' },
+    SET: { type:'SET', addr:'M0.0', label:'Set_bit' },
+    RESET: { type:'RESET', addr:'M0.0', label:'Reset_bit' },
+    TON: { type:'TON', name:'TON', instance:'IEC_Timer_'+Date.now(), pt:'5s' },
+    CTU: { type:'CTU', name:'CTU', instance:'CTU_'+Date.now(), pv:10 },
+    MOVE: { type:'MOVE', in1:'#IN', out:'#OUT' },
+    ADD: { type:'ADD', in1:'#A', out:'#C' },
+    CMP: { type:'CMP', in1:'#IN1', out:'#RES' },
+  };
+  const el = defaults[type] || { type, addr:'I0.0' };
+  networks[ni].rungs[ri].elements.push(el);
+  renderLadder();
+  hideContextMenu();
+}
+
+// ================================================================
+// TABS
+// ================================================================
+function openTab(id, name) {
+  if (!state.openTabs.includes(id)) {
+    state.openTabs.push(id);
+    const tabs = document.getElementById('editorTabs');
+    const tab = document.createElement('div');
+    tab.className = 'editor-tab';
+    tab.id = 'etab-' + id;
+    tab.dataset.tab = id;
+    tab.innerHTML = `<span>${name}</span><span class="close-tab" onclick="closeTab('${id}')">×</span>`;
+    tab.onclick = () => activateTab(id);
+    tabs.appendChild(tab);
+  }
+  activateTab(id);
+}
+
+function activateTab(id) {
+  state.activeTab = id;
+  document.querySelectorAll('.editor-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === id));
+  // For simplicity all tabs show same ladder, in real impl would switch views
+}
+
+function closeTab(id) {
+  const idx = state.openTabs.indexOf(id);
+  if (idx > -1) state.openTabs.splice(idx, 1);
+  const el = document.getElementById('etab-' + id);
+  if (el) el.remove();
+  if (state.openTabs.length > 0) activateTab(state.openTabs[0]);
+}
+
+function showSideTab(tab, btn) {
+  document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('sideProject').style.display = tab === 'project' ? '' : 'none';
+  document.getElementById('sideBlocks').style.display = tab === 'blocks' ? '' : 'none';
+  document.getElementById('sideLibrary').style.display = tab === 'library' ? '' : 'none';
+}
+
+function showBlocksTab(type) {
+  showSideTab('blocks', document.querySelectorAll('.sidebar-tab')[1]);
+}
+
+function openRightTab(tab, el) {
+  document.querySelectorAll('.rpanel-tab').forEach(t => t.classList.remove('active'));
+  if (typeof el === 'string') document.getElementById('rtab-'+tab).classList.add('active');
+  else el.classList.add('active');
+
+  document.getElementById('rpanel-io').style.display = tab === 'io' ? '' : 'none';
+  document.getElementById('rpanel-db').style.display = tab === 'db' ? '' : 'none';
+  document.getElementById('rpanel-diag').style.display = tab === 'diag' ? '' : 'none';
+
+  if (tab === 'db') renderDBPanel();
+}
+
+function renderDBPanel() {
+  const c = document.getElementById('dbContent');
+  c.innerHTML = '';
+  Object.entries(dbVars).forEach(([dbName, vars]) => {
+    const g = document.createElement('div');
+    g.innerHTML = `<div class="tree-group">${dbName}</div>`;
+    vars.forEach((v, vi) => {
+      const row = document.createElement('div');
+      row.className = 'db-row';
+      const typeTag = `<span class="db-type-tag tag-${v.type}">${v.type}</span>`;
+      const isEditable = v.type === 'INT' || v.type === 'REAL' || v.type === 'WORD';
+      const valEl = isEditable
+        ? `<input class="db-editable" type="number" value="${v.val}" onchange="dbVars['${dbName}'][${vi}].val=parseFloat(this.value)">`
+        : `<label class="force-toggle" style="margin-left:auto"><input type="checkbox" ${v.val?'checked':''} onchange="dbVars['${dbName}'][${vi}].val=this.checked"><span class="force-slider"></span></label>`;
+      row.innerHTML = `${typeTag}<span style="font-size:11px;color:var(--text)">${v.name}</span>${valEl}`;
+      g.appendChild(row);
+    });
+    c.appendChild(g);
+  });
+}
+
+function showBottomTab(tab, btn) {
+  document.querySelectorAll('.bottom-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('logPanel').style.display = tab === 'log' ? '' : 'none';
+  document.getElementById('crossrefPanel').style.display = tab === 'crossref' ? '' : 'none';
+  document.getElementById('watchPanel').style.display = tab === 'watch' ? '' : 'none';
+}
+
+// ================================================================
+// LOG
+// ================================================================
+let logCount = 0;
+function addLog(type, tag, msg) {
+  const panel = document.getElementById('logPanel');
+  const line = document.createElement('div');
+  line.className = `log-line ${type}`;
+  const now = new Date();
+  const ts = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}.${now.getMilliseconds().toString().padStart(3,'0')}`;
+  line.innerHTML = `<span class="ts">${ts}</span><span class="tag">[${tag}]</span> ${msg}`;
+  panel.appendChild(line);
+  panel.scrollTop = panel.scrollHeight;
+  if (++logCount > 100) panel.removeChild(panel.firstChild);
+}
+
+// ================================================================
+// WATCH TABLE
+// ================================================================
+function updateWatchTable() {
+  const tbody = document.getElementById('watchBody');
+  tbody.innerHTML = '';
+  const watch = ['I0.0','I0.1','Q0.0','Q0.1','M0.0','M10.0'];
+  watch.forEach(addr => {
+    if (!signals[addr]) return;
+    const s = signals[addr];
+    const val = s.forced ? s.forcedVal : s.val;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:var(--accent);padding:2px 6px">${addr}</td><td style="color:var(--text2)">${s.name}</td><td style="color:var(--text3)">BOOL</td><td style="color:${val?'var(--green)':'var(--text3)'}">${val?'TRUE':'FALSE'}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ================================================================
+// CONTEXT MENU
+// ================================================================
+function showContextMenu(e) {
+  e.preventDefault();
+  const menu = document.getElementById('contextMenu');
+  menu.style.left = e.clientX + 'px';
+  menu.style.top = e.clientY + 'px';
+  menu.classList.add('open');
+}
+function hideContextMenu() {
+  document.getElementById('contextMenu').classList.remove('open');
+}
+document.addEventListener('click', hideContextMenu);
+
+// ================================================================
+// ADD IO
+// ================================================================
+function addNewIO(type) {
+  const bits = Object.keys(signals).filter(k => k.startsWith(type)).length;
+  const byte = Math.floor(bits / 8);
+  const bit = bits % 8;
+  const addr = `${type}${byte}.${bit}`;
+  const name = prompt(`Nombre para ${addr}:`, `${type==='I'?'Input':type==='Q'?'Output':'Marker'}_${bits}`);
+  if (!name) return;
+  signals[addr] = { val: false, forced: false, forcedVal: false, name, type };
+  updateIOTable();
+  addLog('info', 'IO', `Señal ${addr} "${name}" añadida`);
+}
+
+// ================================================================
+// COMPILE
+// ================================================================
+function compileAll() {
+  addLog('info', 'COMP', 'Iniciando compilación...');
+  setTimeout(() => {
+    addLog('ok', 'COMP', 'OB1 compilado — 0 errores, 0 warnings');
+    addLog('ok', 'COMP', 'FB1 compilado — 0 errores, 0 warnings');
+    addLog('ok', 'COMP', 'FC1 compilado — 0 errores, 0 warnings');
+    addLog('ok', 'COMP', `Compilación completada — ${networks.length} networks, ${networks.reduce((a,n)=>a+n.rungs.length,0)} rungs`);
+  }, 300);
+}
+
+// ================================================================
+// RENAME PROMPT
+// ================================================================
+function promptRename(el, ni, ri, ei) {
+  const newAddr = prompt(`Dirección de la señal:`, el.addr);
+  if (!newAddr) return;
+  const newLabel = prompt(`Etiqueta simbólica:`, el.label || '');
+  networks[ni].rungs[ri].elements[ei].addr = newAddr.trim();
+  networks[ni].rungs[ri].elements[ei].label = newLabel;
+  if (!signals[newAddr.trim()]) {
+    const type = newAddr[0];
+    signals[newAddr.trim()] = { val: false, forced: false, forcedVal: false, name: newLabel||newAddr, type: type.toUpperCase() };
+  }
+  renderLadder();
+  updateIOTable();
+}
+
+function showFileMenu() {
+  addLog('info', 'PROJ', 'Proyecto: PLC_Simulator_v1.0 — guardado automático activado');
+}
+
+// ================================================================
+// INIT
+// ================================================================
+renderLadder();
+updateIOTable();
+updateWatchTable();
+addLog('info', 'SYS', 'PLC Simulator iniciado — CPU 1516-3 PN/DP');
+addLog('info', 'SYS', 'Memoria cargada: OB1, FB1, FC1, DB1, DB2');
+addLog('warn', 'SYS', 'CPU en modo STOP — presione RUN o SIMULAR para arrancar');
+addLog('info', 'SYS', '▶ RUN para ciclo real | ⚡ SIMULAR para modo online');
+renderDBPanel();
+</script>
+</body>
+</html>
