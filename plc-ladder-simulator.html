@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORGE PLC — Ladder Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Rajdhani:wght@400;500;600;700&display=swap');
+:root {
+  --bg0:#0a0c10;--bg1:#0f1117;--bg2:#161820;--bg3:#1e2028;--bg4:#252830;
+  --bd:#2a2d38;--bdl:#363a48;
+  --t0:#e8eaf0;--t1:#a8aab8;--t2:#6a6d7c;
+  --acc:#00d4ff;--acc2:#0097b8;--accbg:rgba(0,212,255,.08);
+  --grn:#00ff88;--grn2:#00c066;--grnbg:rgba(0,255,136,.08);
+  --yel:#ffd600;--yelbg:rgba(255,214,0,.08);
+  --red:#ff4455;--redbg:rgba(255,68,85,.08);
+  --ora:#ff8c00;--pur:#b060ff;
+  --rail:#4a4f60;--sel:#00d4ff;--cur:#ffd600;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Rajdhani',sans-serif;background:var(--bg0);color:var(--t0);height:100vh;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+/* HEADER */
+#hdr{height:42px;background:var(--bg1);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:14px;flex-shrink:0}
+.logo{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:14px;color:var(--acc);letter-spacing:2px}.logo span{color:var(--t2)}
+.tabs{display:flex;gap:2px;height:100%;align-items:flex-end}
+.tab{padding:6px 14px;font-size:12px;font-weight:600;letter-spacing:.5px;cursor:pointer;border-radius:4px 4px 0 0;border:1px solid transparent;border-bottom:none;background:transparent;color:var(--t2);transition:all .15s}
+.tab.active{background:var(--bg2);border-color:var(--bd);color:var(--acc)}.tab:hover:not(.active){color:var(--t1)}
+.hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+.sim-st{display:flex;align-items:center;gap:6px;font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--t2)}
+.led{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 6px var(--red);transition:all .3s}
+.led.run{background:var(--grn);box-shadow:0 0 8px var(--grn);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.btn{padding:5px 12px;font-family:'Rajdhani',sans-serif;font-weight:600;font-size:11px;letter-spacing:.5px;border:1px solid var(--bdl);border-radius:4px;background:var(--bg3);color:var(--t1);cursor:pointer;transition:all .15s;white-space:nowrap}
+.btn:hover{border-color:var(--acc2);color:var(--acc)}.btn.pri{background:var(--acc2);border-color:var(--acc);color:#000;font-weight:700}.btn.pri:hover{background:var(--acc)}
+.btn.dng{border-color:var(--red);color:var(--red)}.btn.dng:hover{background:var(--redbg)}
+.btn.suc{border-color:var(--grn);color:var(--grn)}.btn.suc:hover{background:var(--grnbg)}
+/* LAYOUT */
+#main{display:flex;flex:1;overflow:hidden}
+/* SIDEBAR */
+#sb{width:52px;background:var(--bg1);border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:2px;flex-shrink:0;overflow-y:auto}
+.sb-btn{width:40px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border-radius:6px;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--t2);font-size:8px;font-family:'JetBrains Mono',monospace;transition:all .15s}
+.sb-btn svg{width:18px;height:18px}.sb-btn:hover{background:var(--bg3);color:var(--t1);border-color:var(--bd)}
+.sb-btn.yel{color:var(--yel)}.sb-btn.yel:hover{background:var(--yelbg);border-color:var(--yel)}
+.sb-btn.ora{color:var(--ora)}.sb-btn.ora:hover{background:rgba(255,140,0,.1);border-color:var(--ora)}
+.sb-sep{width:30px;height:1px;background:var(--bd);margin:4px 0}
+/* CONTENT */
+#cnt{flex:1;display:flex;flex-direction:column;overflow:hidden}
+/* TOOLBAR */
+#tb{height:48px;background:var(--bg2);border-bottom:1px solid var(--bd);display:flex;align-items:center;padding:0 10px;gap:3px;flex-shrink:0;overflow-x:auto}
+.tbg{display:flex;gap:2px;align-items:center;padding:0 6px;border-right:1px solid var(--bd)}.tbg:last-child{border-right:none}
+.tb-btn{padding:5px 9px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border:1px solid var(--bdl);border-radius:4px;background:var(--bg3);color:var(--t1);cursor:pointer;transition:all .15s;white-space:nowrap}
+.tb-btn:hover{border-color:var(--acc2);color:var(--acc);background:var(--accbg)}
+.tb-btn.yl{border-color:var(--yel);color:var(--yel)}.tb-btn.yl:hover{background:var(--yelbg)}
+.tb-btn.gr{border-color:var(--grn);color:var(--grn)}.tb-btn.gr:hover{background:var(--grnbg)}
+.tb-btn.dng{border-color:var(--red);color:var(--red)}.tb-btn.dng:hover{background:var(--redbg)}
+.tbl{font-size:9px;color:var(--t2);letter-spacing:1px;font-family:'Rajdhani',sans-serif}
+/* PANELS */
+#pnls{flex:1;display:flex;overflow:hidden}
+/* LADDER */
+#ldr{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg0)}
+#ldr-sc{flex:1;overflow:auto;padding:14px;scrollbar-width:thin;scrollbar-color:var(--bd) transparent}
+#ldr-sc::-webkit-scrollbar{width:6px;height:6px}#ldr-sc::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+/* RUNG */
+.rung-w{display:flex;align-items:stretch;margin-bottom:8px;border:1px solid var(--bd);border-radius:6px;overflow:hidden;background:var(--bg1);transition:border-color .15s;min-width:900px}
+.rung-w:hover{border-color:var(--bdl)}.rung-w.sel{border-color:var(--sel);box-shadow:0 0 12px rgba(0,212,255,.15)}.rung-w.enrg{border-color:var(--grn);box-shadow:0 0 10px rgba(0,255,136,.1)}
+.rung-n{width:40px;flex-shrink:0;background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t2);gap:3px;cursor:pointer;padding:6px 2px}
+.rung-n:hover{background:var(--bg3)}
+.rung-del{font-size:10px;color:var(--red);cursor:pointer;opacity:0;transition:opacity .15s;line-height:1}
+.rung-w:hover .rung-del{opacity:.5}.rung-del:hover{opacity:1!important}
+.rung-cmt{font-size:8px;color:var(--t2);font-family:'JetBrains Mono',monospace;writing-mode:vertical-lr;transform:rotate(180deg);max-height:60px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rl{width:7px;flex-shrink:0;background:var(--rail)}.rl.on{background:var(--grn)}
+.rung-cv{flex:1;position:relative;background:var(--bg1)}
+/* SIGNAL TABLE */
+#sig-pnl{height:160px;flex-shrink:0;background:var(--bg1);border-top:1px solid var(--bd);display:flex;flex-direction:column}
+#sig-hdr{padding:5px 12px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-shrink:0}
+#sig-hdr span{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--t2);font-family:'JetBrains Mono',monospace}
+#sig-wrap{flex:1;overflow:auto;scrollbar-width:thin;scrollbar-color:var(--bd) transparent}
+#sig-tbl{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:11px}
+#sig-tbl th{background:var(--bg2);color:var(--t2);font-size:9px;letter-spacing:1px;padding:3px 10px;text-align:left;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:1}
+#sig-tbl td{padding:2px 10px;border-bottom:1px solid rgba(42,45,56,.4);color:var(--t1)}
+#sig-tbl tr:hover td{background:var(--bg2)}
+.sv{cursor:pointer}.sv.T{color:var(--grn);font-weight:600}.sv.F{color:var(--t2)}
+.sf{padding:1px 5px;border-radius:3px;font-size:9px;cursor:pointer;border:1px solid var(--bd);background:transparent;color:var(--t2);font-family:'JetBrains Mono',monospace}
+.sf:hover{border-color:var(--yel);color:var(--yel)}.sf.fcd{border-color:var(--ora);color:var(--ora);background:rgba(255,140,0,.1)}
+.sf.rm{border-color:var(--red);color:var(--red)}.sf.rm:hover{background:var(--redbg)}
+/* HMI */
+#hmi-pnl{width:360px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--bd);display:flex;flex-direction:column;overflow:hidden}
+#hmi-hdr{padding:7px 10px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#hmi-hdr h3{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--acc);font-family:'JetBrains Mono',monospace}
+#hmi-sc{flex:1;overflow-y:auto;padding:8px;scrollbar-width:thin;scrollbar-color:var(--bd) transparent}
+#hmi-sc::-webkit-scrollbar{width:4px}#hmi-sc::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+.hmi-sec{margin-bottom:10px}.hmi-sec-t{font-size:9px;font-weight:700;letter-spacing:2px;color:var(--t2);padding:3px 0;border-bottom:1px solid var(--bd);margin-bottom:6px}
+.hmi-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.hmi-item{background:var(--bg2);border:1px solid var(--bd);border-radius:6px;padding:7px;display:flex;flex-direction:column;gap:4px;position:relative;transition:border-color .15s}
+.hmi-item:hover{border-color:var(--bdl)}
+.hmi-item-h{display:flex;align-items:center;justify-content:space-between;gap:4px}
+.hmi-addr{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--t2)}
+.hmi-name{font-size:11px;font-weight:600;color:var(--t1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hmi-led{width:11px;height:11px;border-radius:50%;background:var(--bg4);border:1px solid var(--bdl);flex-shrink:0;transition:all .2s}
+.hmi-led.on-grn{background:var(--grn);box-shadow:0 0 7px var(--grn);border-color:var(--grn)}
+.hmi-led.on-yel{background:var(--yel);box-shadow:0 0 7px var(--yel);border-color:var(--yel)}
+.hmi-led.on-red{background:var(--red);box-shadow:0 0 7px var(--red);border-color:var(--red)}
+.hmi-led.on-blu{background:var(--acc);box-shadow:0 0 7px var(--acc);border-color:var(--acc)}
+.hmi-bw{width:100%;padding:7px;border-radius:5px;border:2px solid var(--bdl);background:var(--bg3);color:var(--t1);font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;cursor:pointer;transition:all .15s;text-align:center}
+.hmi-bw:active,.hmi-bw.pressed{background:var(--grnbg);border-color:var(--grn);color:var(--grn)}
+.hmi-bw.on-grn{background:var(--grnbg);border-color:var(--grn);color:var(--grn)}
+.hmi-bw.on-red{background:var(--redbg);border-color:var(--red);color:var(--red)}
+.hmi-bw.on-yel{background:var(--yelbg);border-color:var(--yel);color:var(--yel)}
+.hmi-bw.on-blu{background:var(--accbg);border-color:var(--acc);color:var(--acc)}
+.motor-ic{width:28px;height:28px;border-radius:50%;border:2px solid var(--bdl);display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .3s;flex-shrink:0}
+.motor-ic.spin{border-color:var(--grn);animation:spin .5s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.conv-wrap{width:100%;height:20px;background:var(--bg3);border:1px solid var(--bdl);border-radius:3px;overflow:hidden;position:relative;margin-top:2px}
+.conv-belt{position:absolute;top:0;left:0;width:200%;height:100%;background:repeating-linear-gradient(90deg,var(--bg4) 0,var(--bg4) 18px,var(--bdl) 18px,var(--bdl) 22px)}
+.conv-belt.run{animation:cMov .7s linear infinite;background:repeating-linear-gradient(90deg,rgba(0,255,136,.12) 0,rgba(0,255,136,.12) 18px,rgba(0,255,136,.3) 18px,rgba(0,255,136,.3) 22px)}
+@keyframes cMov{from{transform:translateX(0)}to{transform:translateX(-22px)}}
+.hmi-rm{position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;border:1px solid var(--bd);background:var(--bg3);color:var(--t2);font-size:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s;z-index:2}
+.hmi-item:hover .hmi-rm{opacity:.8}.hmi-rm:hover{opacity:1!important;border-color:var(--red);color:var(--red)!important}
+/* STATUS BAR */
+#sbar{height:22px;background:var(--bg2);border-top:1px solid var(--bd);display:flex;align-items:center;padding:0 12px;gap:14px;flex-shrink:0}
+.sbi{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--t2);display:flex;align-items:center;gap:4px}.sbi span{color:var(--acc)}
+.add-rung{display:flex;align-items:center;justify-content:center;gap:6px;min-width:900px;padding:7px;border:1px dashed var(--bd);border-radius:6px;background:transparent;color:var(--t2);cursor:pointer;font-size:11px;font-family:'Rajdhani',sans-serif;letter-spacing:1px;transition:all .15s}
+.add-rung:hover{border-color:var(--acc2);color:var(--acc);background:var(--accbg)}
+.cur-blink{display:inline-flex;align-items:center;justify-content:center;width:38px;height:28px;border:2px dashed var(--cur);border-radius:3px;background:rgba(255,214,0,.05);cursor:pointer;font-size:14px;color:var(--cur);animation:blink 1s step-end infinite}
+@keyframes blink{50%{opacity:.3}}
+/* POPUP */
+#ovl{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;backdrop-filter:blur(2px)}
+#pop,#hpop{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--bg2);border:1px solid var(--acc2);border-radius:8px;padding:16px;z-index:1000;box-shadow:0 20px 60px rgba(0,0,0,.6),0 0 30px rgba(0,212,255,.1)}
+#pop{width:340px}#hpop{width:320px}
+#pop h4,#hpop h4{font-size:12px;font-weight:700;color:var(--acc);letter-spacing:1px;margin-bottom:12px;font-family:'JetBrains Mono',monospace}
+.pf{margin-bottom:9px}.pf label{font-size:10px;color:var(--t2);letter-spacing:1px;display:block;margin-bottom:3px}
+.pf input,.pf select{width:100%;background:var(--bg3);border:1px solid var(--bdl);border-radius:4px;padding:5px 9px;color:var(--t0);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none}
+.pf input:focus,.pf select:focus{border-color:var(--acc)}.pa{display:flex;gap:8px;margin-top:12px}
+</style>
+</head>
+<body>
+<div id="hdr">
+  <div class="logo">FORGE<span>PLC</span></div>
+  <div class="tabs">
+    <div class="tab active">MAIN [OB1]</div>
+    <div class="tab">FC1</div><div class="tab">DB1</div><div class="tab">TAG TABLE</div>
+  </div>
+  <div class="hdr-r">
+    <div class="sim-st"><div class="led" id="led"></div><span id="slbl">STOP</span></div>
+    <button class="btn suc" id="btnRun" onclick="toggleSim()">▶ RUN</button>
+    <button class="btn" onclick="resetSim()">↺ RESET</button>
+    <button class="btn" onclick="downloadProg()">↓ EXPORT</button>
+  </div>
+</div>
+
+<div id="main">
+  <div id="sb">
+    <div class="sb-btn" onclick="ins('NO')" title="Contacto NA ┤├">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg>┤├</div>
+    <div class="sb-btn" onclick="ins('NC')" title="Contacto NC ┤/├">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/><line x1="8" y1="18" x2="16" y2="6"/></svg>┤/├</div>
+    <div class="sb-btn" onclick="ins('PE')" title="Flanco +">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><line x1="8" y1="5" x2="8" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/><text x="12" y="16" font-size="7" fill="currentColor" stroke="none" text-anchor="middle">P</text></svg>┤P├</div>
+    <div class="sb-sep"></div>
+    <div class="sb-btn" onclick="ins('COIL')" title="Bobina ( )">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/></svg>( )</div>
+    <div class="sb-btn" onclick="ins('SET')" title="SET (S)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/><text x="12" y="15" font-size="6" fill="currentColor" stroke="none" text-anchor="middle">S</text></svg>(S)</div>
+    <div class="sb-btn" onclick="ins('RST')" title="RESET (R)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="2" y1="12" x2="8" y2="12"/><line x1="16" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="4"/><text x="12" y="15" font-size="6" fill="currentColor" stroke="none" text-anchor="middle">R</text></svg>(R)</div>
+    <div class="sb-sep"></div>
+    <div class="sb-btn" onclick="ins('TON')" title="TON">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="12" rx="2"/><text x="12" y="15" font-size="7" fill="currentColor" stroke="none" text-anchor="middle">TON</text></svg>TON</div>
+    <div class="sb-btn" onclick="ins('TOF')" title="TOF">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="12" rx="2"/><text x="12" y="15" font-size="7" fill="currentColor" stroke="none" text-anchor="middle">TOF</text></svg>TOF</div>
+    <div class="sb-btn" onclick="ins('CTU')" title="CTU">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="6" width="18" height="12" rx="2"/><text x="12" y="15" font-size="7" fill="currentColor" stroke="none" text-anchor="middle">CTU</text></svg>CTU</div>
+    <div class="sb-sep"></div>
+    <div class="sb-btn yel" onclick="addBranch()" title="↓ Branch">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="5" y1="4" x2="5" y2="20"/><line x1="5" y1="20" x2="19" y2="20"/><line x1="12" y1="4" x2="12" y2="12"/><polyline points="9,9 12,12 15,9"/></svg>BR↓</div>
+    <div class="sb-btn ora" onclick="closeBranch()" title="✕ Cerrar BR">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="5" y1="4" x2="5" y2="20"/><line x1="19" y1="4" x2="19" y2="20"/><line x1="5" y1="20" x2="19" y2="20"/><line x1="5" y1="12" x2="19" y2="12"/></svg>✕BR</div>
+  </div>
+
+  <div id="cnt">
+    <div id="tb">
+      <div class="tbg"><span class="tbl">CONTACTOS</span>
+        <button class="tb-btn" onclick="ins('NO')" title="Ctrl+1">┤ ├ NA</button>
+        <button class="tb-btn" onclick="ins('NC')" title="Ctrl+2">┤/├ NC</button>
+        <button class="tb-btn" onclick="ins('PE')">┤P├</button>
+        <button class="tb-btn" onclick="ins('NE')">┤N├</button>
+      </div>
+      <div class="tbg"><span class="tbl">BOBINAS</span>
+        <button class="tb-btn gr" onclick="ins('COIL')">( ) OUT</button>
+        <button class="tb-btn gr" onclick="ins('SET')">(S) SET</button>
+        <button class="tb-btn gr" onclick="ins('RST')">(R) RST</button>
+      </div>
+      <div class="tbg"><span class="tbl">BLOQUES</span>
+        <button class="tb-btn" onclick="ins('TON')">⏱ TON</button>
+        <button class="tb-btn" onclick="ins('TOF')">⏱ TOF</button>
+        <button class="tb-btn" onclick="ins('TONR')">⏱ TONR</button>
+        <button class="tb-btn" onclick="ins('CTU')">🔢 CTU</button>
+        <button class="tb-btn" onclick="ins('CTD')">🔢 CTD</button>
+      </div>
+      <div class="tbg"><span class="tbl">BRANCH</span>
+        <button class="tb-btn yl" onclick="addBranch()">↓ BRANCH</button>
+        <button class="tb-btn yl" onclick="closeBranch()">✕ CERRAR BR</button>
+      </div>
+      <div class="tbg"><span class="tbl">RUNG</span>
+        <button class="tb-btn" onclick="addRung()">+ RUNG</button>
+        <button class="tb-btn" onclick="dupRung()">⧉ DUP</button>
+        <button class="tb-btn dng" onclick="delSel()" title="DEL">✕ DEL</button>
+      </div>
+    </div>
+
+    <div id="pnls">
+      <div id="ldr">
+        <div id="ldr-sc" onclick="bgClick(event)">
+          <div id="rc"></div>
+          <div class="add-rung" onclick="addRung()">＋ AGREGAR RUNG</div>
+        </div>
+        <div id="sig-pnl">
+          <div id="sig-hdr">
+            <span>WATCH TABLE / FORCE</span>
+            <button class="btn" onclick="addSigPrompt()" style="font-size:10px;padding:2px 8px">+ Señal</button>
+          </div>
+          <div id="sig-wrap">
+            <table id="sig-tbl">
+              <thead><tr><th>DIRECCIÓN</th><th>NOMBRE</th><th>TIPO</th><th>VALOR</th><th>FORZAR</th><th>→</th><th></th></tr></thead>
+              <tbody id="sig-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="hmi-pnl">
+        <div id="hmi-hdr">
+          <h3>HMI PANEL</h3>
+          <button class="btn" onclick="openHmiAdd()" style="font-size:10px;padding:2px 8px">+ ELEMENTO</button>
+        </div>
+        <div id="hmi-sc">
+          <div class="hmi-sec"><div class="hmi-sec-t">PULSADORES / BOTONES</div><div id="h-btns" class="hmi-grid"></div></div>
+          <div class="hmi-sec"><div class="hmi-sec-t">FOCOS / INDICADORES</div><div id="h-leds" class="hmi-grid"></div></div>
+          <div class="hmi-sec"><div class="hmi-sec-t">MOTORES / ACTUADORES</div><div id="h-motors" class="hmi-grid"></div></div>
+          <div class="hmi-sec"><div class="hmi-sec-t">CONVEYORS / SENSORES</div><div id="h-convs"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="sbar">
+  <div class="sbi">MODO: <span id="sb-mode">EDICIÓN</span></div>
+  <div class="sbi">SEL: <span id="sb-sel">—</span></div>
+  <div class="sbi">RUNGS: <span id="sb-rungs">0</span></div>
+  <div class="sbi">SCAN: <span id="sb-scan">—</span></div>
+  <div class="sbi">CICLO: <span id="sb-cyc">0</span></div>
+  <div class="sbi" style="margin-left:auto;color:var(--t2)">DBL-CLIC=editar • DEL=borrar • Ctrl+1=NA • Ctrl+2=NC • Ctrl+O=bobina • Ctrl+Enter=+rung</div>
+</div>
+
+<!-- POPUP EDITAR -->
+<div id="ovl" onclick="closePop();closeHmiAdd()"></div>
+<div id="pop">
+  <h4 id="pop-t">EDITAR ELEMENTO</h4>
+  <div class="pf"><label>DIRECCIÓN</label><input id="pop-addr" type="text" placeholder="I0.0 / Q0.0 / M0.0"/></div>
+  <div class="pf"><label>NOMBRE / LABEL</label><input id="pop-name" type="text" placeholder="Start_PB / Motor_Run"/></div>
+  <div id="pop-extra"></div>
+  <div class="pa">
+    <button class="btn pri" onclick="confirmPop()">✓ APLICAR</button>
+    <button class="btn" onclick="closePop()">✕ CANCELAR</button>
+  </div>
+</div>
+<!-- POPUP HMI -->
+<div id="hpop">
+  <h4>AGREGAR ELEMENTO HMI</h4>
+  <div class="pf"><label>TIPO</label>
+    <select id="hp-type" onchange="hpTypeChg()">
+      <option value="btn-mom">Pulsador (momentáneo)</option>
+      <option value="btn-tog">Botón Toggle</option>
+      <option value="led">Foco / Indicador</option>
+      <option value="motor">Motor / Actuador</option>
+      <option value="conv">Conveyor / Banda</option>
+    </select>
+  </div>
+  <div class="pf"><label>DIRECCIÓN</label><input id="hp-addr" type="text" placeholder="I0.0 / Q0.0 / M0.0"/></div>
+  <div class="pf"><label>NOMBRE</label><input id="hp-name" type="text" placeholder="Motor_1"/></div>
+  <div class="pf" id="hp-col-wrap"><label>COLOR</label>
+    <select id="hp-color">
+      <option value="grn">Verde</option><option value="yel">Amarillo</option>
+      <option value="red">Rojo</option><option value="blu">Azul</option>
+    </select>
+  </div>
+  <div class="pa">
+    <button class="btn pri" onclick="confirmHmiAdd()">✓ AGREGAR</button>
+    <button class="btn" onclick="closeHmiAdd()">✕ CANCELAR</button>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  FORGE PLC — Ladder Simulator v2
+//  Enclavamiento correcto + branches fijos + HMI editable
+// ══════════════════════════════════════════════════════════
+
+const S={running:false,cycle:0,sigs:{},rungs:[],sel:null};
+let eid=0,rid=0;
+const mkeid=()=>'e'+(++eid);
+
+// ─── SIGNALS ───
+function initSigs(){
+  [['I0.0','Start_PB','DI'],['I0.1','Stop_PB','DI'],['I0.2','E_Stop','DI'],
+   ['I0.3','Sensor_A','DI'],['I0.4','Sensor_B','DI'],['I1.0','LS_Home','DI'],
+   ['Q0.0','Motor_1','DO'],['Q0.1','Motor_2','DO'],['Q0.2','Conveyor','DO'],
+   ['Q0.3','Alarm','DO'],['Q0.4','Valve_1','DO'],
+   ['M0.0','Mem_Hold','MEM'],['M0.1','Mem_1','MEM']
+  ].forEach(([a,n,t])=>S.sigs[a]={v:false,forced:false,fv:false,name:n,type:t});
+}
+function gSig(a){
+  if(!S.sigs[a])S.sigs[a]={v:false,forced:false,fv:false,name:a,type:'MEM'};
+  const s=S.sigs[a];return s.forced?s.fv:s.v;
+}
+function sSig(a,v){
+  if(!S.sigs[a])S.sigs[a]={v:false,forced:false,fv:false,name:a,type:'MEM'};
+  if(!S.sigs[a].forced)S.sigs[a].v=v;
+}
+function ensureSig(a){
+  if(a&&a!=='???'&&!S.sigs[a])S.sigs[a]={v:false,forced:false,fv:false,name:a,type:'MEM'};
+}
+
+// ─── ELEMENT FACTORY ───
+const isCoil=t=>['COIL','SET','RST'].includes(t);
+const isBlock=t=>['TON','TOF','TONR','CTU','CTD'].includes(t);
+function mkElem(type){
+  const d={
+    NO:{addr:'I0.0',name:''},NC:{addr:'I0.1',name:''},PE:{addr:'I0.0',name:''},NE:{addr:'I0.0',name:''},
+    COIL:{addr:'Q0.0',name:''},SET:{addr:'M0.0',name:''},RST:{addr:'M0.0',name:''},
+    TON:{addr:'T1',name:'Timer_1',preset:5000,elapsed:0,done:false},
+    TOF:{addr:'T2',name:'Timer_2',preset:3000,elapsed:0,done:false},
+    TONR:{addr:'T3',name:'Timer_3',preset:10000,elapsed:0,done:false},
+    CTU:{addr:'C1',name:'Counter_1',preset:10,count:0,done:false,_prev:false},
+    CTD:{addr:'C2',name:'Counter_2',preset:10,count:10,done:false,_prev:false},
+  };
+  return{id:mkeid(),type,...(d[type]||{addr:'I0.0',name:''})};
+}
+
+// ─── DEFAULT PROGRAM ───
+/*
+  Rung 1 — Enclavamiento clásico Start/Stop:
+  
+  Power ──┬── ┤I0.0 Start├ ──┬──  ┤/I0.1 Stop├ ── ┤/I0.2 E-Stop├ ── (Q0.0 Motor) ──┤
+           │                  │
+           └── ┤Q0.0 Self├ ───┘
+  
+  La rama (Q0.0) va en PARALELO con (I0.0).
+  startElemIdx=0 (I0.0), endElemIdx=1 (I0.1) → cierra al nodo izquierdo de Stop.
+  Lógica: (Start OR Self_Hold) AND (NOT Stop) AND (NOT EStop) → Motor ON
+*/
+function defaultProg(){
+  const r1=mkRung('Enclavamiento Motor 1 — Start / Stop / E-Stop');
+  const e_start=mkElem('NO');  e_start.addr='I0.0'; e_start.name='Start_PB';
+  const e_stop =mkElem('NC');  e_stop.addr ='I0.1'; e_stop.name ='Stop_PB';
+  const e_estop=mkElem('NC');  e_estop.addr='I0.2'; e_estop.name='E_Stop';
+  const e_out  =mkElem('COIL');e_out.addr  ='Q0.0'; e_out.name  ='Motor_1';
+  r1.elements=[e_start,e_stop,e_estop,e_out];
+  // Self-hold: Q0.0 parallel to I0.0, closes at left node of I0.1 (Stop)
+  const e_hold =mkElem('NO');  e_hold.addr ='Q0.0'; e_hold.name ='Motor_1';
+  r1.branches=[{
+    id:mkeid(),
+    startElemIdx:0,  // parallel starts at left of element[0] = I0.0
+    endElemIdx:1,    // closes at left of element[1] = I0.1
+    elements:[e_hold],
+    closed:true
+  }];
+
+  const r2=mkRung('Motor 2 — Sensor_A activa');
+  const e2a=mkElem('NO');e2a.addr='I0.3';e2a.name='Sensor_A';
+  const e2b=mkElem('COIL');e2b.addr='Q0.1';e2b.name='Motor_2';
+  r2.elements=[e2a,e2b];
+
+  const r3=mkRung('Timer TON 3s → Alarma después de arranque motor');
+  const e3a=mkElem('NO');e3a.addr='Q0.0';e3a.name='Motor_1';
+  const e3b=mkElem('TON');e3b.addr='T1';e3b.name='Timer_1';e3b.preset=3000;
+  const e3c=mkElem('COIL');e3c.addr='Q0.3';e3c.name='Alarm';
+  r3.elements=[e3a,e3b,e3c];
+
+  const r4=mkRung('Conveyor: Motor_1 activo y no Sensor_B');
+  const e4a=mkElem('NO');e4a.addr='Q0.0';e4a.name='Motor_1';
+  const e4b=mkElem('NC');e4b.addr='I0.4';e4b.name='Sensor_B';
+  const e4c=mkElem('COIL');e4c.addr='Q0.2';e4c.name='Conveyor';
+  r4.elements=[e4a,e4b,e4c];
+
+  S.rungs=[r1,r2,r3,r4];
+}
+function mkRung(comment=''){return{id:++rid,comment,elements:[],branches:[],energized:false};}
+
+// ─── SVG RENDER ───
+const EW=84, YMID=44, BH=52;
+
+function renderAll(){
+  const rc=document.getElementById('rc');
+  rc.innerHTML='';
+  S.rungs.forEach((r,i)=>rc.appendChild(renderRung(r,i)));
+  document.getElementById('sb-rungs').textContent=S.rungs.length;
+}
+
+function renderRung(rung,ri){
+  const isSel=S.sel&&S.sel.k==='rung'&&S.sel.ri===ri;
+  const w=document.createElement('div');
+  w.className='rung-w'+(rung.energized?' enrg':'')+(isSel?' sel':'');
+  // Number+comment column
+  const nn=document.createElement('div');nn.className='rung-n';
+  nn.innerHTML=`<span style="font-size:9px">${String(ri+1).padStart(3,'0')}</span>
+    ${rung.comment?`<span class="rung-cmt" title="${rung.comment}">${rung.comment}</span>`:''}
+    <span class="rung-del" onclick="event.stopPropagation();delRung(${ri})">✕</span>`;
+  nn.onclick=e=>{if(!e.target.classList.contains('rung-del'))selRung(ri);};
+  const rl=document.createElement('div');rl.className='rl'+(rung.energized?' on':'');
+  const cv=document.createElement('div');cv.className='rung-cv';
+  cv.appendChild(buildSVG(rung,ri));
+  const rr=document.createElement('div');rr.className='rl'+(rung.energized?' on':'');
+  w.append(nn,rl,cv,rr);
+  return w;
+}
+
+function buildSVG(rung,ri){
+  const elems=rung.elements;
+  const branches=rung.branches||[];
+  const numBr=branches.filter(b=>!b.closed||b.elements.length>0).length;
+  const svgH=YMID*2+numBr*BH+16;
+  const svgW=Math.max(900,elems.length*EW+80);
+
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('height',svgH);svg.style.minWidth=svgW+'px';svg.style.width='100%';svg.style.display='block';
+
+  const wc=rung.energized?'var(--grn)':'var(--rail)';
+  const ww=rung.energized?2:1.5;
+
+  // Compute _x for main elements
+  let x=24;
+  elems.forEach(e=>{e._x=x;x+=EW;});
+  const totalW=x+20;
+
+  // Main wire (full width)
+  svg.appendChild(mL(0,YMID,totalW,YMID,wc,ww));
+
+  // Draw main elements
+  elems.forEach(e=>{
+    const sel=S.sel&&S.sel.eid===e.id;
+    const enrg=rung.energized&&!!e._enrg;
+    svg.appendChild(drawElem(e,YMID,ri,enrg,sel));
+  });
+
+  // Draw branches
+  let brCount=0;
+  branches.forEach((br,bi)=>{
+    if(br.elements.length===0&&br.closed)return; // skip empty closed
+    const brY=YMID*2+brCount*BH+10;
+    brCount++;
+
+    // Start/end x using index into elements array
+    const si=typeof br.startElemIdx==='number'?br.startElemIdx:0;
+    const ei=typeof br.endElemIdx==='number'?br.endElemIdx:si+1;
+    const startElem=elems[si];
+    const endElem=elems[ei];
+    const sx=startElem?startElem._x:24;
+    // end x = left edge of endElem (junction point on main rail)
+    const ex=endElem?endElem._x:(elems[elems.length-1]?elems[elems.length-1]._x+EW:sx+EW);
+
+    // vertical drop from main
+    svg.appendChild(mL(sx,YMID,sx,brY,wc,ww));
+    // branch horizontal wire
+    const brWEnd=br.closed?ex:sx+(br.elements.length+1)*EW;
+    svg.appendChild(mL(sx,brY,brWEnd,brY,wc,ww));
+    // vertical rise back to main (only if closed)
+    if(br.closed){
+      svg.appendChild(mL(ex,YMID,ex,brY,wc,ww));
+      // junction dots
+      svg.appendChild(mkDot(sx,YMID,wc));
+      svg.appendChild(mkDot(ex,YMID,wc));
+    }
+
+    // Branch elements
+    let bx=sx+10;
+    br.elements.forEach(e=>{
+      e._x=bx;
+      const sel=S.sel&&S.sel.eid===e.id;
+      svg.appendChild(drawElem(e,brY,ri,false,sel));
+      bx+=EW;
+    });
+
+    // Empty cursor
+    if(br.elements.length===0&&!br.closed){
+      const fo=document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
+      fo.setAttribute('x',sx+12);fo.setAttribute('y',brY-16);fo.setAttribute('width',50);fo.setAttribute('height',32);
+      fo.innerHTML=`<div xmlns="http://www.w3.org/1999/xhtml" class="cur-blink" onclick="selBr(${ri},${bi})">?</div>`;
+      svg.appendChild(fo);
+    }
+    // Open label
+    if(!br.closed){
+      const t=mT(sx+(br.elements.length)*EW+30,brY+4,'↺ ABIERTA','var(--yel)',9);
+      svg.appendChild(t);
+    }
+    // Branch number label
+    const bl=mT(sx+4,brY-4,`BR${bi+1}`,'var(--t2)',8);svg.appendChild(bl);
+  });
+
+  svg.addEventListener('click',e=>{
+    if(e.target===svg||e.target.tagName==='line'||e.target.tagName==='svg')selRung(ri);
+  });
+  return svg;
+}
+
+function mL(x1,y1,x2,y2,c,w){
+  const l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2);
+  l.setAttribute('stroke',c);l.setAttribute('stroke-width',w);return l;
+}
+function mkDot(cx,cy,c){
+  const ci=document.createElementNS('http://www.w3.org/2000/svg','circle');
+  ci.setAttribute('cx',cx);ci.setAttribute('cy',cy);ci.setAttribute('r',3);ci.setAttribute('fill',c);return ci;
+}
+function mT(x,y,txt,c,fs,an='middle'){
+  const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+  t.setAttribute('x',x);t.setAttribute('y',y);t.setAttribute('fill',c||'var(--t1)');
+  t.setAttribute('font-size',fs||10);t.setAttribute('font-family','JetBrains Mono');
+  t.setAttribute('text-anchor',an);t.textContent=txt;return t;
+}
+
+function drawElem(elem,y,ri,enrg,sel){
+  const g=document.createElementNS('http://www.w3.org/2000/svg','g');
+  const x=elem._x||0;
+  g.setAttribute('transform',`translate(${x},0)`);g.style.cursor='pointer';
+  const ec=enrg?'var(--grn)':'var(--rail)';
+  const sc=sel?'var(--sel)':'transparent';const sf=sel?'rgba(0,212,255,.08)':'transparent';
+  const addr=elem.addr||'???';const name=(elem.name&&elem.name!==addr)?elem.name:'';
+
+  if(elem.type==='NO'||elem.type==='PE'||elem.type==='NE'){
+    selBg(g,y,sf,sc);
+    g.appendChild(mL(0,y,14,y,ec,enrg?2:1.5));g.appendChild(mL(56,y,EW,y,ec,enrg?2:1.5));
+    g.appendChild(mL(14,y-15,14,y+15,ec,enrg?2:1.5));g.appendChild(mL(56,y-15,56,y+15,ec,enrg?2:1.5));
+    if(elem.type==='PE')g.appendChild(mL(14,y+10,56,y-10,ec,1.5));
+    if(elem.type==='NE')g.appendChild(mL(14,y-10,56,y+10,ec,1.5));
+    g.appendChild(mT(35,y-18,addr,enrg?'var(--grn)':'var(--acc)',10));
+    if(name)g.appendChild(mT(35,y+26,name,'var(--t2)',9));
+    if(elem.type!=='NO')g.appendChild(mT(35,y+5,elem.type==='PE'?'P':'N',ec,9));
+  } else if(elem.type==='NC'){
+    selBg(g,y,sf,sc);
+    g.appendChild(mL(0,y,14,y,ec,enrg?2:1.5));g.appendChild(mL(56,y,EW,y,ec,enrg?2:1.5));
+    g.appendChild(mL(14,y-15,14,y+15,ec,enrg?2:1.5));g.appendChild(mL(56,y-15,56,y+15,ec,enrg?2:1.5));
+    g.appendChild(mL(14,y+12,56,y-12,ec,1.5));
+    g.appendChild(mT(35,y-18,addr,enrg?'var(--grn)':'var(--acc)',10));
+    if(name)g.appendChild(mT(35,y+26,name,'var(--t2)',9));
+  } else if(isCoil(elem.type)){
+    const cc=enrg?'var(--grn)':(elem.type==='COIL'?'var(--acc2)':'var(--ora)');
+    selBg(g,y,sf,sc);
+    g.appendChild(mL(0,y,19,y,cc,enrg?2:1.5));g.appendChild(mL(52,y,EW,y,cc,enrg?2:1.5));
+    const ci=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    ci.setAttribute('cx',35);ci.setAttribute('cy',y);ci.setAttribute('r',16);
+    ci.setAttribute('stroke',cc);ci.setAttribute('stroke-width',enrg?2:1.5);
+    ci.setAttribute('fill',enrg?'rgba(0,255,136,.1)':'rgba(0,150,180,.05)');
+    g.appendChild(ci);
+    const lbl=elem.type==='SET'?'S':elem.type==='RST'?'R':'';
+    if(lbl)g.appendChild(mT(35,y+5,lbl,cc,13));
+    g.appendChild(mT(35,y-20,addr,cc,10));
+    if(name)g.appendChild(mT(35,y+28,name,'var(--t2)',9));
+  } else if(['TON','TOF','TONR'].includes(elem.type)){
+    const pc=enrg?'var(--grn)':'var(--pur)';
+    g.appendChild(mL(0,y,12,y,ec,1.5));g.appendChild(mL(62,y,EW,y,ec,1.5));
+    const rc=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rc.setAttribute('x',12);rc.setAttribute('y',y-24);rc.setAttribute('width',50);rc.setAttribute('height',48);
+    rc.setAttribute('rx',3);rc.setAttribute('stroke',sel?'var(--sel)':pc);rc.setAttribute('stroke-width',1.5);rc.setAttribute('fill','rgba(176,96,255,.07)');
+    g.appendChild(rc);
+    g.appendChild(mT(37,y-10,elem.type,pc,11));g.appendChild(mT(37,y+3,addr,pc,9));
+    g.appendChild(mT(37,y+14,((elem.preset||0)/1000).toFixed(1)+'s','var(--t2)',9));
+    const pct=elem.elapsed&&elem.preset?Math.min(1,elem.elapsed/elem.preset):0;
+    const bb=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    bb.setAttribute('x',15);bb.setAttribute('y',y+20);bb.setAttribute('width',44);bb.setAttribute('height',3);bb.setAttribute('fill','var(--bg4)');bb.setAttribute('rx',1);g.appendChild(bb);
+    if(pct>0){const bf=document.createElementNS('http://www.w3.org/2000/svg','rect');bf.setAttribute('x',15);bf.setAttribute('y',y+20);bf.setAttribute('width',44*pct);bf.setAttribute('height',3);bf.setAttribute('fill',pc);bf.setAttribute('rx',1);g.appendChild(bf);}
+    if(elem.done)g.appendChild(mT(56,y-18,'✓','var(--grn)',10));
+  } else if(['CTU','CTD'].includes(elem.type)){
+    const cc=enrg?'var(--grn)':'var(--yel)';
+    g.appendChild(mL(0,y,12,y,ec,1.5));g.appendChild(mL(62,y,EW,y,ec,1.5));
+    const rc=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rc.setAttribute('x',12);rc.setAttribute('y',y-24);rc.setAttribute('width',50);rc.setAttribute('height',48);
+    rc.setAttribute('rx',3);rc.setAttribute('stroke',sel?'var(--sel)':cc);rc.setAttribute('stroke-width',1.5);rc.setAttribute('fill','rgba(255,214,0,.06)');
+    g.appendChild(rc);
+    g.appendChild(mT(37,y-10,elem.type,cc,11));g.appendChild(mT(37,y+3,addr,cc,9));
+    g.appendChild(mT(37,y+16,`${elem.count||0}/${elem.preset||10}`,'var(--t2)',9));
+    if(elem.done)g.appendChild(mT(56,y-18,'✓','var(--grn)',10));
+  }
+
+  g.addEventListener('click',ev=>{ev.stopPropagation();selElem(ri,elem.id);});
+  g.addEventListener('dblclick',ev=>{ev.stopPropagation();openPop(ri,elem.id);});
+  return g;
+}
+function selBg(g,y,fill,stroke){
+  const bg=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  bg.setAttribute('x',8);bg.setAttribute('y',y-25);bg.setAttribute('width',67);bg.setAttribute('height',50);
+  bg.setAttribute('rx',4);bg.setAttribute('fill',fill);bg.setAttribute('stroke',stroke);bg.setAttribute('stroke-width',1.5);
+  g.appendChild(bg);
+}
+
+// ─── SELECTION ───
+function selRung(ri){S.sel={k:'rung',ri};document.getElementById('sb-sel').textContent=`Rung ${ri+1}`;renderAll();}
+function selElem(ri,eid){
+  S.sel={k:'elem',ri,eid};
+  const e=findElem(S.rungs[ri],eid);
+  if(e)document.getElementById('sb-sel').textContent=`${e.type} [${e.addr}] ${e.name||''}`;
+  renderAll();
+}
+function selBr(ri,bi){S.sel={k:'branch',ri,bi};document.getElementById('sb-sel').textContent=`Branch ${bi+1} — Rung ${ri+1}`;renderAll();}
+function findElem(rung,eid){
+  let e=rung.elements.find(x=>x.id===eid);
+  if(!e)rung.branches.forEach(b=>{const f=b.elements.find(x=>x.id===eid);if(f)e=f;});
+  return e;
+}
+function findBranchOfElem(rung,eid){
+  for(const b of rung.branches)if(b.elements.find(e=>e.id===eid))return b;
+  return null;
+}
+
+// ─── INSERT ───
+function ins(type){
+  if(!S.sel){
+    if(S.rungs.length===0)addRung();
+    insToRung(S.rungs.length-1,type);return;
+  }
+  const{k,ri,eid:selEid,bi}=S.sel;
+  if(k==='rung'){insToRung(ri,type);return;}
+  if(k==='branch'){
+    const br=S.rungs[ri].branches[bi];
+    const ne=mkElem(type);
+    // position: after last branch element
+    const lastBx=br.elements.length>0
+      ?(S.rungs[ri].elements[br.startElemIdx]?._x||24)+(br.elements.length)*EW+10
+      :(S.rungs[ri].elements[br.startElemIdx]?._x||24)+10;
+    ne._x=lastBx;
+    br.elements.push(ne);
+    S.sel={k:'elem',ri,eid:ne.id};
+    ensureSig(ne.addr);renderAll();updSigTable();return;
+  }
+  // k==='elem'
+  const rung=S.rungs[ri];
+  const ne=mkElem(type);
+  const inBranch=findBranchOfElem(rung,selEid);
+  if(inBranch&&!isCoil(type)){
+    const idx=inBranch.elements.findIndex(e=>e.id===selEid);
+    inBranch.elements.splice(idx+1,0,ne);
+  } else {
+    insToMain(rung,ne,selEid);
+  }
+  S.sel={k:'elem',ri,eid:ne.id};
+  ensureSig(ne.addr);renderAll();updSigTable();
+}
+function insToMain(rung,ne,afterId){
+  if(isCoil(ne.type)){rung.elements.push(ne);return;}
+  const idx=rung.elements.findIndex(e=>e.id===afterId);
+  if(idx>=0){rung.elements.splice(idx+1,0,ne);}
+  else{const fc=rung.elements.findIndex(e=>isCoil(e.type));if(fc>=0)rung.elements.splice(fc,0,ne);else rung.elements.push(ne);}
+}
+function insToRung(ri,type){
+  const rung=S.rungs[ri];const ne=mkElem(type);
+  if(isCoil(type))rung.elements.push(ne);
+  else{const fc=rung.elements.findIndex(e=>isCoil(e.type));if(fc>=0)rung.elements.splice(fc,0,ne);else rung.elements.push(ne);}
+  S.sel={k:'elem',ri,eid:ne.id};ensureSig(ne.addr);renderAll();updSigTable();
+}
+
+// ─── BRANCH ───
+/*
+  FLUJO:
+  1. Selecciona un contacto en el main rail
+  2. ↓ BRANCH  → crea branch con startElemIdx = índice del seleccionado
+                 endElemIdx = índice siguiente (provisional)
+  3. Agrega contactos a la rama (se agregan al branch activo)
+  4. Selecciona el elemento del main donde quieres que CIERRE
+  5. ✕ CERRAR BR → fija endElemIdx = índice del seleccionado
+  
+  El branch cierra en la LÍNEA VERTICAL IZQUIERDA del endElem.
+*/
+function addBranch(){
+  if(!S.sel){alert('Selecciona un contacto del main rail primero');return;}
+  const{k,ri,eid:selEid}=S.sel;
+  const rung=S.rungs[ri];
+  let startIdx=0;
+  if(k==='elem'){
+    const i=rung.elements.findIndex(e=>e.id===selEid);
+    if(i>=0&&!isCoil(rung.elements[i].type))startIdx=i;
+    else startIdx=rung.elements.findIndex(e=>!isCoil(e.type));
+  } else{
+    startIdx=rung.elements.findIndex(e=>!isCoil(e.type));
+  }
+  if(startIdx<0){alert('No hay contactos disponibles para ramificar');return;}
+  // provisional endIdx = startIdx+1
+  const endIdx=Math.min(startIdx+1, rung.elements.filter(e=>!isCoil(e.type)).length);
+  const br={id:mkeid(),startElemIdx:startIdx,endElemIdx:endIdx,elements:[],closed:false};
+  rung.branches.push(br);
+  const bi=rung.branches.length-1;
+  S.sel={k:'branch',ri,bi};
+  document.getElementById('sb-sel').textContent=
+    `Branch ${bi+1} abierto → agrega contactos → selecciona punto de cierre → ✕ CERRAR BR`;
+  renderAll();
+}
+function closeBranch(){
+  const{k,ri,bi,eid:selEid}=S.sel||{};
+  // find rung with open branch
+  const rungIdx=(ri!==undefined)?ri:S.rungs.findIndex(r=>r.branches.some(b=>!b.closed));
+  if(rungIdx<0){alert('No hay ramas abiertas');return;}
+  const rung=S.rungs[rungIdx];
+  const brIdx=(k==='branch')?bi:rung.branches.findIndex(b=>!b.closed);
+  if(brIdx<0){alert('No hay ramas abiertas en este rung');return;}
+  const br=rung.branches[brIdx];
+  // Determine endElemIdx
+  if(k==='elem'){
+    const inMain=rung.elements.findIndex(e=>e.id===selEid);
+    if(inMain>0&&inMain>br.startElemIdx){
+      br.endElemIdx=inMain;
+    }
+  }
+  // Validate: end > start
+  if(br.endElemIdx<=br.startElemIdx){
+    br.endElemIdx=Math.min(br.startElemIdx+1,rung.elements.length-1);
+  }
+  br.closed=true;
+  S.sel={k:'rung',ri:rungIdx};
+  document.getElementById('sb-sel').textContent=`Rung ${rungIdx+1}`;
+  renderAll();
+}
+
+// ─── RUNG OPS ───
+function addRung(){
+  const r=mkRung('');
+  const e1=mkElem('NO');e1.addr='I0.0';
+  const e2=mkElem('COIL');e2.addr='Q0.0';
+  r.elements=[e1,e2];
+  S.rungs.push(r);S.sel={k:'rung',ri:S.rungs.length-1};renderAll();
+}
+function dupRung(){
+  if(!S.sel)return;const{ri}=S.sel;
+  const r=JSON.parse(JSON.stringify(S.rungs[ri]));r.id=++rid;
+  const idMap={};
+  const regen=e=>{const o=e.id;e.id=mkeid();idMap[o]=e.id;};
+  r.elements.forEach(regen);
+  r.branches.forEach(b=>{b.id=mkeid();b.elements.forEach(regen);});
+  S.rungs.splice(ri+1,0,r);S.sel={k:'rung',ri:ri+1};renderAll();
+}
+function delRung(ri){S.rungs.splice(ri,1);S.sel=null;document.getElementById('sb-sel').textContent='—';renderAll();}
+function delSel(){
+  if(!S.sel)return;const{k,ri,eid:selEid,bi}=S.sel;
+  if(k==='rung'){delRung(ri);return;}
+  const rung=S.rungs[ri];
+  if(k==='branch'){rung.branches.splice(bi,1);S.sel={k:'rung',ri};renderAll();return;}
+  const mi=rung.elements.findIndex(e=>e.id===selEid);
+  if(mi>=0)rung.elements.splice(mi,1);
+  else rung.branches.forEach(b=>{const i=b.elements.findIndex(e=>e.id===selEid);if(i>=0)b.elements.splice(i,1);});
+  S.sel={k:'rung',ri};renderAll();
+}
+
+// ─── POPUP ───
+let popCb=null;
+function openPop(ri,eid){
+  const e=findElem(S.rungs[ri],eid);if(!e)return;
+  document.getElementById('pop-t').textContent=`EDITAR — ${e.type}`;
+  document.getElementById('pop-addr').value=e.addr||'';
+  document.getElementById('pop-name').value=e.name||'';
+  const ex=document.getElementById('pop-extra');ex.innerHTML='';
+  if(['TON','TOF','TONR'].includes(e.type))
+    ex.innerHTML=`<div class="pf"><label>PRESET (ms)</label><input id="pop-pre" type="number" value="${e.preset||5000}" min="100" step="100"/></div>`;
+  if(['CTU','CTD'].includes(e.type))
+    ex.innerHTML=`<div class="pf"><label>PRESET (conteo)</label><input id="pop-pre" type="number" value="${e.preset||10}" min="1"/></div>`;
+  popCb=()=>{
+    const na=document.getElementById('pop-addr').value.trim();
+    if(na)e.addr=na;
+    e.name=document.getElementById('pop-name').value.trim();
+    const pe=document.getElementById('pop-pre');
+    if(pe)e.preset=parseInt(pe.value)||e.preset;
+    ensureSig(e.addr);updSigTable();renderAll();
+  };
+  document.getElementById('pop').style.display='block';
+  document.getElementById('ovl').style.display='block';
+  document.getElementById('pop-addr').focus();document.getElementById('pop-addr').select();
+}
+function confirmPop(){if(popCb)popCb();closePop();}
+function closePop(){document.getElementById('pop').style.display='none';document.getElementById('ovl').style.display='none';popCb=null;}
+
+// ─── KEYBOARD ───
+document.addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT')return;
+  if(document.getElementById('pop').style.display==='block'){
+    if(e.key==='Enter')confirmPop();if(e.key==='Escape')closePop();return;
+  }
+  if(e.key==='Delete'||e.key==='Backspace'){delSel();return;}
+  if(e.key==='Escape'){S.sel=null;document.getElementById('sb-sel').textContent='—';renderAll();return;}
+  if(e.ctrlKey){
+    if(e.key==='1'){e.preventDefault();ins('NO');}
+    else if(e.key==='2'){e.preventDefault();ins('NC');}
+    else if(e.key==='o'||e.key==='O'){e.preventDefault();ins('COIL');}
+    else if(e.key==='Enter'){e.preventDefault();addRung();}
+  }
+});
+function bgClick(ev){
+  if(ev.target.id==='ldr-sc'||ev.target.id==='rc'){S.sel=null;document.getElementById('sb-sel').textContent='—';renderAll();}
+}
+
+// ─── SIMULATION ───
+let simInt=null;
+function toggleSim(){
+  S.running=!S.running;
+  const btn=document.getElementById('btnRun'),led=document.getElementById('led');
+  if(S.running){
+    btn.textContent='⏹ STOP';btn.className='btn dng';led.classList.add('run');
+    document.getElementById('slbl').textContent='RUN';
+    document.getElementById('sb-mode').textContent='SIMULACIÓN';
+    simInt=setInterval(scanCycle,100);
+  } else {
+    btn.textContent='▶ RUN';btn.className='btn suc';led.classList.remove('run');
+    document.getElementById('slbl').textContent='STOP';
+    document.getElementById('sb-mode').textContent='EDICIÓN';
+    clearInterval(simInt);
+    Object.entries(S.sigs).forEach(([a,s])=>{if(!s.forced&&(a.startsWith('Q')||a.startsWith('M')))s.v=false;});
+    S.rungs.forEach(r=>{r.energized=false;r.elements.forEach(e=>e._enrg=false);r.branches.forEach(b=>b.elements.forEach(e=>e._enrg=false));});
+    renderAll();updHMI();updSigTable();
+  }
+}
+function resetSim(){
+  if(S.running)toggleSim();
+  Object.entries(S.sigs).forEach(([a,s])=>{if(!s.forced)s.v=false;});
+  S.rungs.forEach(r=>{
+    r.energized=false;
+    r.elements.forEach(e=>{e._enrg=false;if(e.elapsed!==undefined){e.elapsed=0;e.done=false;}if(e.count!==undefined){e.count=e.type==='CTD'?(e.preset||10):0;e.done=false;e._prev=false;}});
+    r.branches.forEach(b=>b.elements.forEach(e=>e._enrg=false));
+  });
+  renderAll();updHMI();updSigTable();
+}
+function scanCycle(){
+  const t0=performance.now();S.cycle++;
+  S.rungs.forEach(evalRung);
+  const dt=performance.now()-t0;
+  document.getElementById('sb-scan').textContent=dt.toFixed(1)+'ms';
+  document.getElementById('sb-cyc').textContent=S.cycle;
+  renderAll();updHMI();updSigTable();
+}
+
+/*
+  evalRung — lógica de enclavamiento:
+  
+  El rung tiene:
+  - contacts: array de elementos NO/NC/timer/etc (en orden, sin bobinas)
+  - coils: array de bobinas al final
+  - branches: cada branch es paralelo a un SEGMENTO del main
+  
+  Para el enclavamiento (Start/Hold en paralelo, antes de Stop):
+    main contacts: [I0.0(start), I0.1(stop_NC), I0.2(estop_NC)]
+    branch: [Q0.0(hold)] paralelo a I0.0 (startIdx=0, endIdx=1)
+    
+    Lógica en código:
+    pwrBeforeStart = TRUE (izquierda del nodo de bifurcación)
+    mainSeg = evalElems([I0.0]) → resultado de Start
+    brSeg   = evalElems([Q0.0]) → resultado de Hold
+    joinedPwr = mainSeg OR brSeg  (eso es el paralelo)
+    then continue: joinedPwr AND NOT(I0.1) AND NOT(I0.2) → salida
+*/
+function evalRung(rung){
+  const allContacts=rung.elements.filter(e=>!isCoil(e.type));
+  const coils=rung.elements.filter(e=>isCoil(e.type));
+
+  // Build a power-flow evaluation respecting branch parallels
+  // We process elements in order. When we reach startElemIdx of a branch,
+  // we run the branch parallel and OR the results.
+  
+  let pwr=true;
+  let i=0;
+  while(i<allContacts.length){
+    // Check if any branch starts here (parallel to elements[i..end-1])
+    const br=rung.branches.find(b=>b.closed&&b.startElemIdx===i);
+    if(br){
+      // Evaluate element[i] in main
+      const mainSeg=evalOneElem(allContacts[i],pwr);
+      // Evaluate branch elements in parallel
+      const brPwr=evalElems(br.elements,pwr);
+      // OR them
+      const joinedPwr=mainSeg||brPwr;
+      allContacts[i]._enrg=mainSeg&&pwr;
+      // Update energized state for branch elements
+      br.elements.forEach(e=>e._enrg=brPwr&&pwr);
+      pwr=joinedPwr;
+      i++;
+      // Skip to endElemIdx (the rest of main continues from there)
+    } else {
+      const result=evalOneElem(allContacts[i],pwr);
+      allContacts[i]._enrg=result;
+      pwr=result;
+      i++;
+    }
+  }
+
+  // Also handle open branches (not closed) — just evaluate separately
+  rung.branches.filter(b=>!b.closed&&b.elements.length>0).forEach(br=>{
+    evalElems(br.elements,true);
+  });
+
+  rung.energized=pwr;
+  coils.forEach(c=>{
+    c._enrg=pwr;
+    if(c.type==='COIL')sSig(c.addr,pwr);
+    else if(c.type==='SET'&&pwr)sSig(c.addr,true);
+    else if(c.type==='RST'&&pwr)sSig(c.addr,false);
+  });
+}
+
+function evalOneElem(e,inPwr){
+  if(!inPwr){
+    if(['TON','TONR'].includes(e.type)){e.elapsed=0;e.done=false;}
+    return false;
+  }
+  switch(e.type){
+    case 'NO':case 'PE': return gSig(e.addr);
+    case 'NC':case 'NE': return !gSig(e.addr);
+    case 'TON':
+      e.elapsed=(e.elapsed||0)+100;
+      if(e.elapsed>=e.preset){e.elapsed=e.preset;e.done=true;}
+      return e.done;
+    case 'TOF':
+      e.done=true;e.elapsed=0;return true;
+    case 'TONR':
+      e.elapsed=(e.elapsed||0)+100;
+      if(e.elapsed>=e.preset){e.done=true;e.elapsed=e.preset;}
+      return e.done;
+    case 'CTU':{
+      const r=e._prev;
+      if(!r){e.count=(e.count||0)+1;if(e.count>=e.preset){e.done=true;e.count=e.preset;}}
+      e._prev=true;return e.done;}
+    case 'CTD':{
+      const r=e._prev;
+      if(!r){e.count=(e.count||e.preset)-1;if(e.count<=0){e.done=true;e.count=0;}}
+      e._prev=true;return e.done;}
+    default: return true;
+  }
+}
+// Also handle TOF reset when power off:
+function evalElems(elems,initPwr){
+  let p=initPwr;
+  elems.forEach(e=>{
+    if(e.type==='TOF'){
+      if(p){e.done=true;e.elapsed=0;}
+      else if(e.done){e.elapsed=(e.elapsed||0)+100;if(e.elapsed>=e.preset){e.done=false;e.elapsed=0;}}
+      e._enrg=e.done;p=e.done;
+    } else {
+      const r=evalOneElem(e,p);e._enrg=r;p=r;
+    }
+    if(!p&&e._prev!==undefined)e._prev=false;
+  });
+  return p;
+}
+// Handle CTU/CTD reset on falling edge  
+setInterval(()=>{
+  if(!S.running)return;
+  S.rungs.forEach(r=>r.elements.forEach(e=>{
+    if(['CTU','CTD'].includes(e.type)&&!e._prevPwrForReset){
+      // nothing
+    }
+    if(e.type==='TOF'&&!e._lastPwr&&e.done){
+      e.elapsed=(e.elapsed||0)+0; // handled in evalElems
+    }
+  }));
+},100);
+
+// ─── SIGNAL TABLE ───
+function buildSigTable(){Object.keys(S.sigs).forEach(a=>addSigRow(a));}
+function addSigRow(addr){
+  if(document.querySelector(`[data-sig="${addr}"]`))return;
+  const s=S.sigs[addr];
+  const tr=document.createElement('tr');tr.dataset.sig=addr;
+  tr.innerHTML=`
+    <td>${addr}</td>
+    <td style="color:var(--t2)">${s.name||addr}</td>
+    <td style="font-size:9px;color:var(--t2)">${s.type||'MEM'}</td>
+    <td class="sv ${s.v?'T':'F'}" id="sv-${addr}" onclick="togSig('${addr}')">${s.v?'TRUE':'FALSE'}</td>
+    <td><button class="sf ${s.forced?'fcd':''}" id="sf-${addr}" onclick="togForce('${addr}')">${s.forced?'FORZADO':'FORZAR'}</button></td>
+    <td><button class="sf" onclick="setFV('${addr}',true)">1</button> <button class="sf" onclick="setFV('${addr}',false)">0</button></td>
+    <td><button class="sf rm" onclick="delSigRow('${addr}')">✕</button></td>`;
+  document.getElementById('sig-body').appendChild(tr);
+}
+function updSigTable(){
+  Object.entries(S.sigs).forEach(([a,s])=>{
+    if(!document.querySelector(`[data-sig="${a}"]`))addSigRow(a);
+    const v=s.forced?s.fv:s.v;
+    const ve=document.getElementById(`sv-${a}`);if(ve){ve.textContent=v?'TRUE':'FALSE';ve.className=`sv ${v?'T':'F'}`;}
+    const fe=document.getElementById(`sf-${a}`);if(fe){fe.textContent=s.forced?'FORZADO':'FORZAR';fe.className=`sf${s.forced?' fcd':''}`;}
+  });
+}
+function togSig(a){const s=S.sigs[a];if(!s)return;if(s.forced)s.fv=!s.fv;else s.v=!s.v;updSigTable();updHMI();}
+function togForce(a){const s=S.sigs[a];if(!s)return;s.forced=!s.forced;if(s.forced)s.fv=s.v;updSigTable();}
+function setFV(a,v){const s=S.sigs[a];if(!s)return;s.forced=true;s.fv=v;updSigTable();updHMI();}
+function addSigPrompt(){
+  const a=prompt('Dirección (I0.5, M1.3, Q1.0...):');if(!a)return;
+  const n=prompt('Nombre/tag:',a)||a;
+  ensureSig(a.trim());S.sigs[a.trim()].name=n;
+  addSigRow(a.trim());updSigTable();
+}
+function delSigRow(addr){const tr=document.querySelector(`[data-sig="${addr}"]`);if(tr)tr.remove();}
+
+// ─── HMI ───
+const hReg={btns:[],leds:[],motors:[],convs:[]};
+function buildHMI(){
+  [['I0.0','START','mom','grn'],['I0.1','STOP','tog','red'],['I0.2','E-STOP','mom','red'],
+   ['I0.3','SENSOR A','tog','yel'],['I0.4','SENSOR B','tog','yel'],['I1.0','LS HOME','tog','blu']
+  ].forEach(([a,n,k,c])=>addHmiBtn(a,n,k,c));
+  [['Q0.0','Motor 1','grn'],['Q0.1','Motor 2','grn'],['Q0.2','Conveyor','blu'],
+   ['Q0.3','Alarm','red'],['Q0.4','Valve 1','yel'],['M0.0','Mem Hold','yel']
+  ].forEach(([a,n,c])=>addHmiLed(a,n,c));
+  [['Q0.0','Motor 1'],['Q0.1','Motor 2']].forEach(([a,n])=>addHmiMotor(a,n));
+  addHmiConv('Q0.2','Conveyor FWD');
+}
+
+function addHmiBtn(addr,name,kind,color){
+  const id='hbtn-'+addr.replace('.','_');if(document.getElementById('wi-'+id))return;
+  hReg.btns.push({addr,name,kind,color,id});
+  const isMom=kind==='mom';
+  const div=document.createElement('div');div.className='hmi-item';div.id='wi-'+id;
+  const cv=colorVar(color);
+  div.innerHTML=`<div class="hmi-rm" onclick="rmHmi('btn','${id}')">✕</div>
+    <div class="hmi-item-h"><div><div class="hmi-addr">${addr}</div><div class="hmi-name">${name}</div></div></div>
+    <button class="hmi-bw" id="${id}" style="border-color:var(--${cv})"
+      ${isMom?`onmousedown="hmiPr('${addr}',true,'${id}')"onmouseup="hmiPr('${addr}',false,'${id}')"onmouseleave="hmiPr('${addr}',false,'${id}')"`
+             :`onclick="hmiTog('${addr}','${color}','${id}')"`}
+    >${name}</button>`;
+  document.getElementById('h-btns').appendChild(div);ensureSig(addr);
+}
+function addHmiLed(addr,name,color){
+  const id='hled-'+addr.replace('.','_');if(document.getElementById('wi-'+id))return;
+  hReg.leds.push({addr,name,color,id});
+  const div=document.createElement('div');div.className='hmi-item';div.id='wi-'+id;
+  div.innerHTML=`<div class="hmi-rm" onclick="rmHmi('led','${id}')">✕</div>
+    <div class="hmi-item-h"><div><div class="hmi-addr">${addr}</div><div class="hmi-name">${name}</div></div>
+    <div class="hmi-led" id="${id}"></div></div>`;
+  document.getElementById('h-leds').appendChild(div);ensureSig(addr);
+}
+function addHmiMotor(addr,name){
+  const id='hmot-'+addr.replace('.','_');if(document.getElementById('wi-'+id))return;
+  hReg.motors.push({addr,name,id});
+  const div=document.createElement('div');div.className='hmi-item';div.id='wi-'+id;
+  div.innerHTML=`<div class="hmi-rm" onclick="rmHmi('motor','${id}')">✕</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+      <div><div class="hmi-addr">${addr}</div><div class="hmi-name">${name}</div></div>
+      <div class="motor-ic" id="${id}">⚙</div></div>`;
+  document.getElementById('h-motors').appendChild(div);ensureSig(addr);
+}
+function addHmiConv(addr,name){
+  const id='hconv-'+addr.replace('.','_');if(document.getElementById('wi-'+id))return;
+  hReg.convs.push({addr,name,id});
+  const div=document.createElement('div');div.className='hmi-item';div.style.marginBottom='5px';div.id='wi-'+id;
+  div.innerHTML=`<div class="hmi-rm" onclick="rmHmi('conv','${id}')">✕</div>
+    <div class="hmi-item-h"><div class="hmi-addr">${addr}</div><div class="hmi-name">${name}</div></div>
+    <div class="conv-wrap"><div class="conv-belt" id="${id}"></div></div>`;
+  document.getElementById('h-convs').appendChild(div);ensureSig(addr);
+}
+function rmHmi(type,id){
+  const w=document.getElementById('wi-'+id);if(w)w.remove();
+  if(type==='btn')hReg.btns=hReg.btns.filter(x=>x.id!==id);
+  else if(type==='led')hReg.leds=hReg.leds.filter(x=>x.id!==id);
+  else if(type==='motor')hReg.motors=hReg.motors.filter(x=>x.id!==id);
+  else if(type==='conv')hReg.convs=hReg.convs.filter(x=>x.id!==id);
+}
+function colorVar(c){return c==='grn'?'grn':c==='red'?'red':c==='yel'?'yel':'acc';}
+function hmiPr(addr,val,id){
+  ensureSig(addr);S.sigs[addr].v=val;
+  const b=document.getElementById(id);if(b){if(val)b.classList.add('pressed');else b.classList.remove('pressed');}
+  updSigTable();
+}
+function hmiTog(addr,color,id){
+  ensureSig(addr);S.sigs[addr].v=!S.sigs[addr].v;
+  const b=document.getElementById(id);
+  if(b){b.classList.remove('on-grn','on-red','on-yel','on-blu');if(S.sigs[addr].v)b.classList.add('on-'+color);}
+  updSigTable();
+}
+function updHMI(){
+  hReg.leds.forEach(l=>{const el=document.getElementById(l.id);if(!el)return;const v=gSig(l.addr);el.className='hmi-led'+(v?' on-'+l.color:'');});
+  hReg.motors.forEach(m=>{const el=document.getElementById(m.id);if(!el)return;const v=gSig(m.addr);el.className='motor-ic'+(v?' spin':'');el.style.borderColor=v?'var(--grn)':'var(--bdl)';});
+  hReg.convs.forEach(c=>{const el=document.getElementById(c.id);if(!el)return;const v=gSig(c.addr);el.className='conv-belt'+(v?' run':'');});
+}
+function openHmiAdd(){document.getElementById('hpop').style.display='block';document.getElementById('ovl').style.display='block';document.getElementById('hp-addr').focus();}
+function closeHmiAdd(){document.getElementById('hpop').style.display='none';if(!document.getElementById('pop')||document.getElementById('pop').style.display==='none')document.getElementById('ovl').style.display='none';}
+function hpTypeChg(){const t=document.getElementById('hp-type').value;document.getElementById('hp-col-wrap').style.display=(t==='motor'||t==='conv')?'none':'block';}
+function confirmHmiAdd(){
+  const type=document.getElementById('hp-type').value;
+  const addr=document.getElementById('hp-addr').value.trim();
+  const name=document.getElementById('hp-name').value.trim()||addr;
+  const color=document.getElementById('hp-color').value;
+  if(!addr){alert('Dirección requerida');return;}
+  ensureSig(addr);
+  if(type==='btn-mom')addHmiBtn(addr,name,'mom',color);
+  else if(type==='btn-tog')addHmiBtn(addr,name,'tog',color);
+  else if(type==='led')addHmiLed(addr,name,color);
+  else if(type==='motor')addHmiMotor(addr,name);
+  else if(type==='conv')addHmiConv(addr,name);
+  addSigRow(addr);updSigTable();closeHmiAdd();
+  document.getElementById('hp-addr').value='';document.getElementById('hp-name').value='';
+}
+
+// ─── EXPORT ───
+function downloadProg(){
+  const d=JSON.stringify({rungs:S.rungs,signals:S.sigs},null,2);
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([d],{type:'application/json'}));
+  a.download='ladder_prog.json';a.click();
+}
+
+// ─── INIT ───
+function init(){
+  initSigs();defaultProg();buildHMI();buildSigTable();renderAll();updHMI();
+}
+init();
+</script>
+</body>
+</html>
